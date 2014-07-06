@@ -86,7 +86,8 @@ func (project *Project) run(name string, logName string, e *fsnotify.FileEvent) 
 
 // Usage prints usage about the app and tasks.
 func (project *Project) Usage() {
-	flag.Usage()
+	fmt.Printf("Usage: %s [flags] [task...]\n\n", path.Base(os.Args[0]))
+	flag.PrintDefaults()
 	fmt.Printf("\nTasks\n\n")
 
 	names := []string{}
@@ -102,7 +103,16 @@ func (project *Project) Usage() {
 	}
 	sort.Strings(names)
 	for _, name := range names {
-		fmt.Printf("  %-16s %s\n", name, m[name].Description)
+		task := m[name]
+		description := task.Description
+		if description == "" {
+			if len(task.Dependencies) > 0 {
+				description = "Runs {" + strings.Join(task.Dependencies, ", ") + ", " + name + "} tasks"
+			} else {
+				description = "Runs " + name + " task"
+			}
+		}
+		fmt.Printf("  %-24s %s\n", cyan(name), description)
 	}
 }
 
@@ -134,12 +144,7 @@ func (project *Project) Task(name string, args ...interface{}) *Task {
 			task.Description = t
 		}
 	}
-	if task.Description == "" {
-		task.Description = "Runs " + name + " task"
-	}
-
 	project.Tasks[name] = task
-
 	return task
 }
 
