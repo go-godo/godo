@@ -62,13 +62,13 @@ func TestMatching(t *testing.T) {
 }
 
 func TestGlob(t *testing.T) {
-	files, _ := Glob([]string{"test/**/*.txt"})
+	files, _, _ := Glob([]string{"test/**/*.txt"})
 	if len(files) != 5 {
 		t.Log("files %v", files)
-		t.Error("should return all go files")
+		t.Error("should return all txt files")
 	}
 
-	files, _ = Glob([]string{"test/**/*.txt", "!**/*sub1.txt"})
+	files, _, _ = Glob([]string{"test/**/*.txt", "!**/*sub1.txt"})
 	if len(files) != 3 {
 		t.Error("should return all go files but those suffixed with sub1.txt")
 	}

@@ -112,6 +112,7 @@ func (task *Task) RunWithEvent(logName string, e *fsnotify.FileEvent) {
 		}
 	}
 
+	log := true
 	if task.Handler != nil {
 		task.Handler()
 	} else if task.ContextHandler != nil {
@@ -120,13 +121,17 @@ func (task *Task) RunWithEvent(logName string, e *fsnotify.FileEvent) {
 			context.FileEvent = e
 		}
 		task.ContextHandler(context)
-	} else if len(task.Dependencies) == 0 {
+	} else if len(task.Dependencies) > 0 {
+		// no need to log if just dependency
+		log = false
+	} else {
 		Panicf(task.Name, "Handler, ContextHandler or Dependencies is required")
-		// must be dependencies only
 	}
 
 	elapsed := time.Now().Sub(start)
-	Infof(logName, "%s%vms\n", rebuilt, elapsed.Nanoseconds()/1e6)
+	if log {
+		Infof(logName, "%s%vms\n", rebuilt, elapsed.Nanoseconds()/1e6)
+	}
 
 	task.Complete = true
 }

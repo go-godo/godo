@@ -3,11 +3,13 @@
 *gosu* is a build tool for Go in the spirit of Rake, Gulp, Projmate ...
 *gosu* supports watching, globbing, tasks and importing other projects.
 
-_Asset.pipeline is in the works. Much simpler than Gulp or Grunt._
+_Asset.pipeline is in the works. Should be simpler than Gulp or Grunt._
 
 ## Install
 
+```sh
     go get github.com/mgutz/gosu
+```
 
 ## Example
 
@@ -49,8 +51,10 @@ To run and watch a task: `go run main.go --watch stylesheets`
 
 Build your utility:
 
+```sh
     go build -o gosu main.go    # name it whatever you want
     gosu --watch stylesheets    # profit
+```
 
 ## Syntax
 
@@ -83,7 +87,7 @@ p.Task("name", "description", func() {
 
 To add a task with description and ContextHandler
 
-```
+```go
 p.Task("name", "description", func(c *gosu.Context) {
     // use context to get info about c.FileEvent or c.Task
 })
@@ -98,7 +102,7 @@ p.Task("name", []string{"dep1", "dep2"})
 
 To enable watching on a task, add glob patterns
 
-```
+```go
 // watches all files ending with "go.html"
 p.Task("views", gosu.Files{"./views/**/*.go.html"}, func() {
     // compile templates
