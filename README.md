@@ -14,30 +14,32 @@ _Asset.pipeline is in the works. Much simpler than Gulp or Grunt._
 *gosu* does not have its own executable. Instead, use *gosu* to build your
 project build tool.
 
-    import (
-        gosu"github.com/mgutz/gosu"
-    )
+```go
+import (
+    gosu"github.com/mgutz/gosu"
+)
 
-    func Project(p *u.Project) {
-        p.Task("default", "Runs all tasks" string[]{"stylesheets", "app"})
+func Project(p *u.Project) {
+    p.Task("default", "Runs all tasks" string[]{"stylesheets", "app"})
 
-        p.Task("stylesheets", gosu.Files{"public/css/**/*.less"}, func(c *u.Context) {
-            if c.FileEvent != nil {
-                // c.FileEvent contains change event from watch
-            }
-            for _, f := range c.Task.WatchFiles {
-                // f.FileInfo and f.Path
-            }
-        })
+    p.Task("stylesheets", gosu.Files{"public/css/**/*.less"}, func(c *u.Context) {
+        if c.FileEvent != nil {
+            // c.FileEvent contains change event from watch
+        }
+        for _, f := range c.Task.WatchFiles {
+            // f.FileInfo and f.Path
+        }
+    })
 
-        p.Task("app", "(Re)runs the app", gosu.Files{"**/*.go"}, func() {
-            // use any restart package here
-        })
-    }
+    p.Task("app", "(Re)runs the app", gosu.Files{"**/*.go"}, func() {
+        // use any restart package here
+    })
+}
 
-    func main() {
-        gosu.Run(Project)
-    }
+func main() {
+    gosu.Run(Project)
+}
+```
 
 To run default task: `go run main.go`
 
@@ -65,29 +67,39 @@ Tasks MUST define Handler, ContextHandler or have Dependencies
 
 To add a default task, which runs when a task on command-line is not provided
 
-    p.Task("default", string[]{"clean", "stylesheets", "views"})
+```go
+p.Task("default", string[]{"clean", "stylesheets", "views"})
+```
 
 To add a task with description and Handler
 
-    p.Task("name", "description", func() {
-        // work here
-    })
+```go
+p.Task("name", "description", func() {
+    // work here
+})
+```
 
 To add a task with description and ContextHandler
 
-    p.Task("name", "description", func(c *gosu.Context) {
-        // use context to get info about c.FileEvent or c.Task
-    })
+```
+p.Task("name", "description", func(c *gosu.Context) {
+    // use context to get info about c.FileEvent or c.Task
+})
+```
 
 To add a task with Dependencies
 
-    p.Task("name", string[]{"dep1", "dep2"})
+```go
+p.Task("name", string[]{"dep1", "dep2"})
+```
 
 To support watching, add glob patterns
 
-    p.Task("views", gosu.Files{"./views/**/*.go.html"}, func() {
-        // compile templates
-    })
+```
+p.Task("views", gosu.Files{"./views/**/*.go.html"}, func() {
+    // compile templates
+})
+```
 
 ### Glob Patterns
 
@@ -101,17 +113,19 @@ To support watching, add glob patterns
 
 ### Import another project
 
-    import (
-        "github.com/acme/project"
-    )
+```go
+import (
+    "github.com/acme/project"
+)
 
-    func Project(p *Project) {
-        // Use  it within this project and assign namespace "ns"
-        p.Use("ns", project.Project)
+func Project(p *Project) {
+    // Use  it within this project and assign namespace "ns"
+    p.Use("ns", project.Project)
 
-        // Add as dependency, note the namespace
-        p.Task("default", []string{"ns:sprite"})
-    }
+    // Add as dependency, note the namespace
+    p.Task("default", []string{"ns:sprite"})
+}
+```
 
 ## FAQ
 
