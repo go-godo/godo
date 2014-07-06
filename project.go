@@ -40,7 +40,7 @@ func (project *Project) mustTask(name string) (*Project, *Task) {
 
 	task := proj.Tasks[taskName]
 	if task == nil {
-		Errorf("project", "Invalid task: %s\n", name)
+		Errorf("project", "Task is not defined \"%s\"\n", name)
 		os.Exit(1)
 	}
 	return proj, task

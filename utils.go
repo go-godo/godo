@@ -32,8 +32,8 @@ func Infof(group string, format string, any ...interface{}) {
 
 // Errorf writes an error statement to stdout.
 func Errorf(group string, format string, any ...interface{}) {
-	fmt.Errorf(red(group) + " ")
-	fmt.Errorf(red(format), any...)
+	fmt.Printf(red(group) + " ")
+	fmt.Printf(red(format), any...)
 }
 
 // Panicf writes an error statement to stdout.

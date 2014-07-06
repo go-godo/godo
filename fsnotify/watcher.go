@@ -1,4 +1,3 @@
-// From https://github.com/bronze1man/kmg
 // Package fsnotify implements filesystem notification,.
 package fsnotify
 
@@ -11,11 +10,13 @@ import (
 	"github.com/howeyc/fsnotify"
 )
 
-// it is a wrapper of github.com/howeyc/fsnotify.Watcher
-// add recursion watch directory.
-// add buffer to event chan
-// add time to event
-
+// Watcher is a wrapper around which adds some additional features:
+//
+// - recursive directory watch
+// - buffer to even chan
+// - even time
+//
+// Original work from https://github.com/bronze1man/kmg
 type Watcher struct {
 	*fsnotify.Watcher
 	Event chan *FileEvent
@@ -28,6 +29,7 @@ type Watcher struct {
 	quit         chan bool
 }
 
+// NewWatcher creates an instance of watcher.
 func NewWatcher(bufferSize int) (watcher *Watcher, err error) {
 	origin, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -42,6 +44,8 @@ func NewWatcher(bufferSize int) (watcher *Watcher, err error) {
 	go watcher.eventHandle()
 	return
 }
+
+// Close closes the watcher channels.
 func (w *Watcher) Close() error {
 	if w.isClosed {
 		return nil
@@ -51,6 +55,7 @@ func (w *Watcher) Close() error {
 	w.isClosed = true
 	return err
 }
+
 func (w *Watcher) eventHandle() {
 	for {
 		select {
@@ -91,12 +96,19 @@ func (w *Watcher) errorHandle(err error) {
 	}
 	w.ErrorHandler(err)
 }
+
+// GetErrorChan gets error chan.
 func (w *Watcher) GetErrorChan() chan error {
 	return w.Error
 }
+
+// GetEventChan gets event chan.
 func (w *Watcher) GetEventChan() chan *FileEvent {
 	return w.Event
 }
+
+// WatchRecursive watches a directory recursively. If a dir is created
+// within directory it is also watched.
 func (w *Watcher) WatchRecursive(path string) error {
 	path, err := filepath.Abs(path)
 	if err != nil {
@@ -129,11 +141,14 @@ func (w *Watcher) getSubFolders(path string) (paths []string, err error) {
 	})
 	return paths, err
 }
+
+// DefaultIsIgnorePath checks whether a path is ignored. Currently defaults
+// to hidden files on *nix systems, ie they start with a ".".
 func DefaultIsIgnorePath(path string) bool {
-	return IsDotFile(path)
+	return isDotFile(path)
 }
 
-func IsDotFile(path string) bool {
+func isDotFile(path string) bool {
 	if path == "./" {
 		return false
 	}

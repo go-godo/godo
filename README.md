@@ -8,7 +8,7 @@ _Asset.pipeline is in the works. Should be simpler than Gulp or Grunt._
 ## Install
 
 ```sh
-    go get github.com/mgutz/gosu
+go get github.com/mgutz/gosu
 ```
 
 ## Example
@@ -52,8 +52,8 @@ To run and watch a task: `go run main.go --watch stylesheets`
 Build your utility:
 
 ```sh
-    go build -o gosu main.go    # name it whatever you want
-    gosu --watch stylesheets    # profit
+go build -o gosu main.go    # name it whatever you want
+gosu --watch stylesheets    # profit
 ```
 
 ## Syntax
@@ -113,15 +113,21 @@ All tasks MUST have a Handler, ContextHandler or Dependencies.
 
 ### Glob Patterns
 
-    /**/   - match zero or more directories
-    {a,b}  - match a or b, no spaces
-    *      - match any non-separator char
-    ?      - match a single non-separator char
-    **/    - match any directory, start of pattern only
-    /**    - match any this directory, end of pattern only
-    !      - removes files from resultset, start of pattern only
+```
+/**/   - match zero or more directories
+{a,b}  - match a or b, no spaces
+*      - match any non-separator char
+?      - match a single non-separator char
+**/    - match any directory, start of pattern only
+/**    - match any this directory, end of pattern only
+!      - removes files from resultset, start of pattern only
+```
 
-### Import another project
+### Import Project
+
+A large project can be broken into multiple projects or referenced from
+other projects. Imported projects need to be namespaced to avoid
+conflicts with names in the existing project.
 
 ```go
 import (

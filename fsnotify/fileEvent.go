@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-//it is a wrapper of github.com/howeyc/fsnotify.FileEvent
+// FileEvent is a wrapper around github.com/howeyc/fsnotify.FileEvent
 type FileEvent struct {
 	*originFsnotify.FileEvent
 	Name string
