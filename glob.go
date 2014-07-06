@@ -23,6 +23,7 @@ const (
 	SlashStarStarSlash = "/**/"
 )
 
+// RegexpInfo contains additional info about the Regexp created by a glob pattern.
 type RegexpInfo struct {
 	*regexp.Regexp
 	Negate bool

@@ -83,7 +83,7 @@ func (project *Project) run(name string, logName string, e *fsnotify.FileEvent) 
 		if proj == nil {
 			fmt.Errorf("Project was not loaded for \"%s\" task", name)
 		}
-		project.Namespace[namespace].RunLog(taskName, name+" > "+depName)
+		project.Namespace[namespace].RunLog(taskName, name+">"+depName)
 	}
 	task.RunFromEvent(logName, e)
 	return nil

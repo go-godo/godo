@@ -20,7 +20,7 @@ import (
 )
 
 func Project(p *gosu.Project) {
-    p.Task("default", "Runs all tasks" string[]{"stylesheets", "app"})
+    p.Task("default", "Runs all tasks" []string{"stylesheets", "app"})
 
     p.Task("stylesheets", gosu.Files{"public/css/**/*.less"}, func(c *gosu.Context) {
         if c.FileEvent != nil {
@@ -68,7 +68,7 @@ Tasks MUST define Handler, ContextHandler or have Dependencies
 To add a default task, which runs when a task on command-line is not provided
 
 ```go
-p.Task("default", string[]{"clean", "stylesheets", "views"})
+p.Task("default", []string{"clean", "stylesheets", "views"})
 ```
 
 To add a task with description and Handler
@@ -90,10 +90,10 @@ p.Task("name", "description", func(c *gosu.Context) {
 To add a task with Dependencies
 
 ```go
-p.Task("name", string[]{"dep1", "dep2"})
+p.Task("name", []string{"dep1", "dep2"})
 ```
 
-To support watching, add glob patterns
+To watch a task, add glob patterns
 
 ```
 p.Task("views", gosu.Files{"./views/**/*.go.html"}, func() {

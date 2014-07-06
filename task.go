@@ -113,11 +113,6 @@ func (task *Task) RunFromEvent(logName string, e *fsnotify.FileEvent) {
 		}
 	}
 
-	hasDeps := len(task.Dependencies) > 0
-	if hasDeps {
-		Infof(logName, "begin\n")
-	}
-
 	if task.Handler != nil {
 		task.Handler()
 	} else if task.ContextHandler != nil {
@@ -131,12 +126,8 @@ func (task *Task) RunFromEvent(logName string, e *fsnotify.FileEvent) {
 		// must be dependencies only
 	}
 
-	elapsed := start.Sub(start)
-	if hasDeps {
-		Infof(logName, "end %v\n", elapsed)
-	} else {
-		Infof(logName, "%s%v\n", rebuilt, elapsed)
-	}
+	elapsed := time.Now().Sub(start)
+	Infof(logName, "%s%vms\n", rebuilt, elapsed.Nanoseconds()/1e6)
 
 	task.Complete = true
 }
