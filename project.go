@@ -62,14 +62,9 @@ func (project *Project) Run(name string) {
 	project.run(name, name, nil)
 }
 
-// RunLog runs a task by name with an information logname for logging.
-func (project *Project) RunLog(name string, logname string) {
-	project.run(name, logname, nil)
-}
-
-// RunFromEvent runs a task by name and adds FileEvent e to the context.
-func (project *Project) RunFromEvent(name string, e *fsnotify.FileEvent) {
-	project.run(name, name, e)
+// RunWithEvent runs a task by name and adds FileEvent e to the context.
+func (project *Project) RunWithEvent(name string, logName string, e *fsnotify.FileEvent) {
+	project.run(name, logName, e)
 }
 
 // run runs the project, executing any tasks named on the command line.
@@ -83,9 +78,9 @@ func (project *Project) run(name string, logName string, e *fsnotify.FileEvent) 
 		if proj == nil {
 			fmt.Errorf("Project was not loaded for \"%s\" task", name)
 		}
-		project.Namespace[namespace].RunLog(taskName, name+">"+depName)
+		project.Namespace[namespace].RunWithEvent(taskName, name+">"+depName, e)
 	}
-	task.RunFromEvent(logName, e)
+	task.RunWithEvent(logName, e)
 	return nil
 }
 
@@ -203,6 +198,12 @@ func watchTask(root string, taskName string, handler func(e *fsnotify.FileEvent)
 // direct dependency is also watched.
 func (project *Project) Watch(names []string) {
 	funcs := []func(){}
+
+	if len(names) == 0 {
+		if project.Tasks["default"] != nil {
+			names = append(names, "default")
+		}
+	}
 
 	taskClosure := func(project *Project, task *Task, taskname string) func() {
 		root := shortestDir(task.WatchFiles)

@@ -63,7 +63,7 @@ func (task *Task) Run() {
 		Debugf(task.Name, "Already ran\n")
 		return
 	}
-	task.RunFromEvent(task.Name, nil)
+	task.RunWithEvent(task.Name, nil)
 }
 
 // isWatchedFile determines if a FileEvent's file is a watched file
@@ -83,28 +83,28 @@ func (task *Task) isWatchedFile(e *fsnotify.FileEvent) bool {
 		if info.Negate {
 			if matched {
 				matched = !info.MatchString(filename)
+				//Debugf("task", "negated match? %s %s\n", filename, matched)
 				continue
 			}
 		} else if info.MatchString(filename) {
-			//Debugf("task", "matched %s\n", filename)
 			matched = true
+			//Debugf("task", "matched %s %s\n", filename, matched)
 			continue
 		}
 	}
 	return matched
 }
 
-// RunFromEvent runs this task when triggered from a watch.
+// RunWithEvent runs this task when triggered from a watch.
 // *e* FileEvent contains information about the file/directory which changed
 // in watch mode.
-func (task *Task) RunFromEvent(logName string, e *fsnotify.FileEvent) {
+func (task *Task) RunWithEvent(logName string, e *fsnotify.FileEvent) {
 	start := time.Now()
 	if len(task.WatchGlobs) > 0 && len(task.WatchFiles) == 0 {
 		task.expandGlobs()
 	}
-
-	rebuilt := ""
 	// Run this task only if the file matches watch Regexps
+	rebuilt := ""
 	if e != nil {
 		rebuilt = "rebuilt "
 		if !task.isWatchedFile(e) {

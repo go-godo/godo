@@ -3,7 +3,7 @@
 package fsnotify
 
 import (
-	"fmt"
+	//"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -55,7 +55,7 @@ func (w *Watcher) eventHandle() {
 	for {
 		select {
 		case originEvent := <-w.Watcher.Event:
-			fmt.Printf("originEvent %+v\n", originEvent)
+			//fmt.Printf("originEvent %+v\n", originEvent)
 			if w.IsIgnorePath(originEvent.Name) {
 				continue
 			}
