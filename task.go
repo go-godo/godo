@@ -74,8 +74,7 @@ func (task *Task) isWatchedFile(e *fsnotify.FileEvent) bool {
 	}
 
 	filename, err := filepath.Rel(cwd, e.Name)
-	Debugf("task", "checking for match %s\n", filename)
-
+	//Debugf("task", "checking for match %s\n", filename)
 	if err != nil {
 		return false
 	}
@@ -87,7 +86,7 @@ func (task *Task) isWatchedFile(e *fsnotify.FileEvent) bool {
 				continue
 			}
 		} else if info.MatchString(filename) {
-			Debugf("task", "matched %s\n", filename)
+			//Debugf("task", "matched %s\n", filename)
 			matched = true
 			continue
 		}

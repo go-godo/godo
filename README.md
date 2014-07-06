@@ -63,9 +63,11 @@ All file patterns MUST start with a directory:
 
 `Project.Task` has variable arguments of type `interface{}` for usability.
 
-Tasks MUST define Handler, ContextHandler or have Dependencies
+```go
+func (project *Project) Task(name string, args ...interface{})
+```
 
-To add a default task, which runs when a task on command-line is not provided
+To add a default task, which runs when a task name is not provided on the command line
 
 ```go
 p.Task("default", []string{"clean", "stylesheets", "views"})
@@ -90,16 +92,20 @@ p.Task("name", "description", func(c *gosu.Context) {
 To add a task with Dependencies
 
 ```go
+// run dep1, dep2, name in sequence
 p.Task("name", []string{"dep1", "dep2"})
 ```
 
-To watch a task, add glob patterns
+To enable watching on a task, add glob patterns
 
 ```
+// watches all files ending with "go.html"
 p.Task("views", gosu.Files{"./views/**/*.go.html"}, func() {
     // compile templates
 })
 ```
+
+All tasks MUST have a Handler, ContextHandler or Dependencies.
 
 ### Glob Patterns
 

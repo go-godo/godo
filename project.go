@@ -151,7 +151,6 @@ func (project *Project) Task(name string, args ...interface{}) *Task {
 func shortestDir(files []*FileAsset) string {
 	dirs := []string{}
 	for _, fa := range files {
-		Debugf("project", "file %v\n", fa)
 		dirs = append(dirs, fa.Path)
 	}
 	sort.Strings(dirs)
@@ -170,24 +169,31 @@ func watchTask(root string, taskName string, handler func(e *fsnotify.FileEvent)
 		Errorf("project", "%v\n", err)
 	}
 
-	//this function will block forever
+	// this function will block forever, Ctrl+C to quit app
 	lastHappendTime := time.Now()
 	firstTime := true
+	lastRename := ""
 	for {
 		if firstTime {
-			Infof(taskName, "watching %s\n", magenta(root))
+			Infof(taskName, "watching %s ...\n", magenta(root))
 			firstTime = false
 		}
 		event := <-watcher.Event
-		// changing a file sends rename and create as two separate events
+		//changing a file sends rename and create as two separate events
 		if event.IsRename() {
-			continue
+			lastRename = event.Name
+		}
+		if event.IsCreate() {
+			if lastRename == event.Name {
+				continue
+			}
+			lastRename = ""
 		}
 		if event.Time.Before(lastHappendTime) {
 			continue
 		}
 		handler(event)
-		//wait 200ms to prevent multiple restart in short time
+		// prevent multiple restart in short time
 		time.Sleep(waitTime)
 		lastHappendTime = time.Now()
 	}
