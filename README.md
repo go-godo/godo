@@ -16,7 +16,7 @@ project build tool.
 
 ```go
 import (
-    gosu"github.com/mgutz/gosu"
+    "github.com/mgutz/gosu"
 )
 
 func Project(p *gosu.Project) {
@@ -50,7 +50,7 @@ To run and watch a task: `go run main.go --watch stylesheets`
 Build your utility:
 
     go build -o gosu main.go    # name it whatever you want
-    gosu --watch stylesheets         # profit
+    gosu --watch stylesheets    # profit
 
 ## Syntax
 
@@ -129,8 +129,7 @@ func Project(p *Project) {
 
 ## FAQ
 
-If you are receiving wierd events, please read [fsnotify](https://github.com/howeyc/fsnotify)
-
+If you are receiving wierd events (Mac Users) please read [fsnotify](https://github.com/howeyc/fsnotify) FAQ
 
 ## LICENSE
 

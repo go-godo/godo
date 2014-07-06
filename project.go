@@ -3,7 +3,6 @@ package gosu
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"path"
 	"sort"
@@ -74,11 +73,10 @@ func (project *Project) RunFromEvent(name string, e *fsnotify.FileEvent) {
 }
 
 // run runs the project, executing any tasks named on the command line.
-func (project *Project) run(name string, logname string, e *fsnotify.FileEvent) error {
+func (project *Project) run(name string, logName string, e *fsnotify.FileEvent) error {
 	_, task := project.mustTask(name)
 
 	// Run each task including their dependencies.
-	Infof(logname, "begin\n")
 	for _, depName := range task.Dependencies {
 		namespace, taskName := project.namespaceTaskName(depName)
 		proj := project.Namespace[namespace]
@@ -87,8 +85,7 @@ func (project *Project) run(name string, logname string, e *fsnotify.FileEvent) 
 		}
 		project.Namespace[namespace].RunLog(taskName, name+" > "+depName)
 	}
-	task.RunFromEvent(e)
-	Infof(logname, "end\n")
+	task.RunFromEvent(logName, e)
 	return nil
 }
 
@@ -157,10 +154,7 @@ func shortestDir(files []*FileAsset) string {
 		Debugf("project", "file %v\n", fa)
 		dirs = append(dirs, fa.Path)
 	}
-
-	Debugf("project", "pre sorted dirs %v\n", dirs)
 	sort.Strings(dirs)
-	Debugf("project", "sorted dirs %v\n", dirs)
 	return path.Dir(dirs[0])
 }
 
@@ -178,14 +172,21 @@ func watchTask(root string, taskName string, handler func(e *fsnotify.FileEvent)
 
 	//this function will block forever
 	lastHappendTime := time.Now()
+	firstTime := true
 	for {
-		Infof(taskName, "watching %s\n", magenta(root))
+		if firstTime {
+			Infof(taskName, "watching %s\n", magenta(root))
+			firstTime = false
+		}
 		event := <-watcher.Event
-		//task.Run()
+		// changing a file sends rename and create as two separate events
+		if event.IsRename() {
+			continue
+		}
 		if event.Time.Before(lastHappendTime) {
 			continue
 		}
-		Debugf("project", "event %v\n", event)
+		handler(event)
 		//wait 200ms to prevent multiple restart in short time
 		time.Sleep(waitTime)
 		lastHappendTime = time.Now()
@@ -193,7 +194,7 @@ func watchTask(root string, taskName string, handler func(e *fsnotify.FileEvent)
 }
 
 // Watch watches the Files of a task and reruns the task on a watch event. Any
-// dependency is also watched.
+// direct dependency is also watched.
 func (project *Project) Watch(names []string) {
 	funcs := []func(){}
 
@@ -217,7 +218,6 @@ func (project *Project) Watch(names []string) {
 		if len(task.Dependencies) > 0 {
 			for _, depname := range task.Dependencies {
 				proj, task := project.mustTask(depname)
-				log.Printf("depen w task", task)
 				if len(task.WatchFiles) > 0 {
 					funcs = append(funcs, taskClosure(proj, task, taskname))
 				}

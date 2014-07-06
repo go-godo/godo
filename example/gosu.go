@@ -29,10 +29,12 @@ func Project(p *gosu.Project) {
 	})
 
 	p.Task("views", gosu.Files{"views/**/*.go.html"}, func() {
+		fmt.Printf("Restarting views...\n")
 		exec.Command("gorazor", "views", "views").Run()
 	})
 
 	p.Task("restart", "(Re)starts the app", gosu.Files{"**/*.go"}, func() {
+		fmt.Printf("Restarting app...")
 		// (re)start your app
 	})
 }

@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	// NotSlash is pattern for any rune but slash.
+	// NotSlash is any rune but path separator.
 	NotSlash = "[^/]"
-	// AnyRune is zero or more non-slash.
+	// AnyRune is zero or more non-path separators.
 	AnyRune = NotSlash + "*"
 	// ZeroOrMoreDirectories is used by ** patterns.
 	ZeroOrMoreDirectories = "((?:[\\w\\.\\-]+\\/)*)"
@@ -22,6 +22,11 @@ const (
 	// SlashStarStarSlash maches zero or more directories.
 	SlashStarStarSlash = "/**/"
 )
+
+type RegexpInfo struct {
+	*regexp.Regexp
+	Negate bool
+}
 
 // Globexp creates a Regexp from extended glob pattern.
 func Globexp(glob string) *regexp.Regexp {
@@ -105,16 +110,18 @@ func Globexp(glob string) *regexp.Regexp {
 //   /**    - match any this directory, end of pattern only
 //   !      - removes files from resultset, start of pattern only
 //
-func Glob(patterns []string) ([]*FileAsset, error) {
+func Glob(patterns []string) ([]*FileAsset, []*RegexpInfo, error) {
 	// TODO very inefficient and unintelligent, optimize later
 
 	m := map[string]*FileAsset{}
+	regexps := []*RegexpInfo{}
 
 	for _, pattern := range patterns {
 		remove := strings.HasPrefix(pattern, "!")
 		if remove {
 			pattern = pattern[1:]
 			re := Globexp(pattern)
+			regexps = append(regexps, &RegexpInfo{Regexp: re, Negate: true})
 			for path := range m {
 				if re.MatchString(path) {
 					m[path] = nil
@@ -122,6 +129,7 @@ func Glob(patterns []string) ([]*FileAsset, error) {
 			}
 		} else {
 			re := Globexp(pattern)
+			regexps = append(regexps, &RegexpInfo{Regexp: re})
 			root := patternRoot(pattern)
 			if root == "" {
 				Panicf("glob", "Cannot get root from pattern: %s", pattern)
@@ -145,7 +153,7 @@ func Glob(patterns []string) ([]*FileAsset, error) {
 		}
 	}
 
-	return keys, nil
+	return keys, regexps, nil
 }
 
 // FileAsset contains file information and path from globbing.
@@ -154,7 +162,7 @@ type FileAsset struct {
 	Path string
 }
 
-// hasMeta determines if a path has special chars used to be bild a Regexp.
+// hasMeta determines if a path has special chars used to build a Regexp.
 func hasMeta(path string) bool {
 	return strings.IndexAny(path, "*?[{") >= 0
 }
