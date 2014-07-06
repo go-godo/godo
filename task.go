@@ -42,45 +42,45 @@ type Task struct {
 }
 
 // Expands glob patterns.
-func (self *Task) expandGlobs() {
-	files, err := Glob(self.WatchGlobs)
+func (task *Task) expandGlobs() {
+	files, err := Glob(task.WatchGlobs)
 	if err != nil {
-		Errorf(self.Name, "%v", err)
+		Errorf(task.Name, "%v", err)
 		return
 	}
-	self.WatchFiles = files
+	task.WatchFiles = files
 }
 
 // Run runs all the dependencies of this task and when they have completed,
 // runs this task.
-func (self *Task) Run() {
-	if !*watching && self.Complete {
-		Debugf(self.Name, "Already ran\n")
+func (task *Task) Run() {
+	if !*watching && task.Complete {
+		Debugf(task.Name, "Already ran\n")
 		return
 	}
-	self.RunFromEvent(nil)
+	task.RunFromEvent(nil)
 }
 
-// Run runs this task when triggered from a watch.
+// RunFromEvent runs this task when triggered from a watch.
 // *e* contains information about the file/directory which changed when
 // watching.
-func (self *Task) RunFromEvent(e *fsnotify.FileEvent) {
-	if len(self.WatchGlobs) > 0 && len(self.WatchFiles) == 0 {
-		self.expandGlobs()
+func (task *Task) RunFromEvent(e *fsnotify.FileEvent) {
+	if len(task.WatchGlobs) > 0 && len(task.WatchFiles) == 0 {
+		task.expandGlobs()
 	}
 
-	if self.Handler != nil {
-		self.Handler()
-	} else if self.ContextHandler != nil {
-		context := &Context{Task: self}
+	if task.Handler != nil {
+		task.Handler()
+	} else if task.ContextHandler != nil {
+		context := &Context{Task: task}
 		if e != nil {
 			context.FileEvent = e
 		}
-		self.ContextHandler(context)
-	} else if len(self.Dependencies) == 0 {
-		Panicf(self.Name, "Handler, ContextHandler or Dependencies is required")
+		task.ContextHandler(context)
+	} else if len(task.Dependencies) == 0 {
+		Panicf(task.Name, "Handler, ContextHandler or Dependencies is required")
 		// must be dependencies only
 	}
 
-	self.Complete = true
+	task.Complete = true
 }

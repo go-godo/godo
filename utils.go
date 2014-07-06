@@ -18,22 +18,26 @@ func init() {
 	}
 }
 
+// Debugf writes a debug statement to stdout.
 func Debugf(group string, format string, any ...interface{}) {
 	fmt.Print(gray(group) + " ")
 	fmt.Printf(gray(format), any...)
 }
 
+// Infof writes an info statement to stdout.
 func Infof(group string, format string, any ...interface{}) {
 	fmt.Print(cyan(group) + " ")
 	fmt.Printf(format, any...)
 }
 
+// Errorf writes an error statement to stdout.
 func Errorf(group string, format string, any ...interface{}) {
-	fmt.Print(red(group) + " ")
-	fmt.Printf(red(format), any...)
+	fmt.Errorf(red(group) + " ")
+	fmt.Errorf(red(format), any...)
 }
 
+// Panicf writes an error statement to stdout.
 func Panicf(group string, format string, any ...interface{}) {
-	fmt.Print(redInverse(group) + " ")
+	fmt.Printf(redInverse(group) + " ")
 	fmt.Printf(redInverse(format), any...)
 }

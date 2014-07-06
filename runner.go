@@ -3,7 +3,7 @@ package gosu
 import "flag"
 import "os"
 
-// Runs a project.
+// Run runs a project as defined within projectFunc handler function.
 func Run(projectFunc func(*Project)) {
 	project := NewProject()
 	projectFunc(project)

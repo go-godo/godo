@@ -14,7 +14,7 @@ func ImportedProject(p *gosu.Project) {
 	})
 }
 
-// Define your project's task inside a function
+// Project is your local project. Define your tasks here.
 func Project(p *gosu.Project) {
 	// User other projects in namespace
 	p.Use("ext", ImportedProject)

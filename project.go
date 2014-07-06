@@ -1,7 +1,6 @@
 package gosu
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -32,10 +31,10 @@ func NewProject() *Project {
 	return project
 }
 
-func (self *Project) mustTask(name string) (*Project, *Task) {
-	namespace, taskName := self.namespaceTaskName(name)
+func (project *Project) mustTask(name string) (*Project, *Task) {
+	namespace, taskName := project.namespaceTaskName(name)
 
-	proj := self.Namespace[namespace]
+	proj := project.Namespace[namespace]
 	if proj == nil {
 		Panicf("project", "Could not find project having namespace \"%s\"\n", namespace)
 	}
@@ -48,7 +47,7 @@ func (self *Project) mustTask(name string) (*Project, *Task) {
 	return proj, task
 }
 
-func (self *Project) namespaceTaskName(name string) (namespace string, taskName string) {
+func (project *Project) namespaceTaskName(name string) (namespace string, taskName string) {
 	namespace = ""
 	taskName = name
 	if strings.Contains(name, ":") {
@@ -59,44 +58,48 @@ func (self *Project) namespaceTaskName(name string) (namespace string, taskName 
 	return
 }
 
-func (self *Project) Run(name string) {
-	self.run(name, name, nil)
+// Run runs a task by name.
+func (project *Project) Run(name string) {
+	project.run(name, name, nil)
 }
 
-func (self *Project) RunLog(name string, logname string) {
-	self.run(name, logname, nil)
+// RunLog runs a task by name with an information logname for logging.
+func (project *Project) RunLog(name string, logname string) {
+	project.run(name, logname, nil)
 }
 
-func (self *Project) RunFromEvent(name string, e *fsnotify.FileEvent) {
-	self.run(name, name, e)
+// RunFromEvent runs a task by name and adds FileEvent e to the context.
+func (project *Project) RunFromEvent(name string, e *fsnotify.FileEvent) {
+	project.run(name, name, e)
 }
 
-// Runs the project, executing any tasks named on the command line.
-func (self *Project) run(name string, logname string, e *fsnotify.FileEvent) error {
-	_, task := self.mustTask(name)
+// run runs the project, executing any tasks named on the command line.
+func (project *Project) run(name string, logname string, e *fsnotify.FileEvent) error {
+	_, task := project.mustTask(name)
 
 	// Run each task including their dependencies.
 	Infof(logname, "begin\n")
 	for _, depName := range task.Dependencies {
-		namespace, taskName := self.namespaceTaskName(depName)
-		project := self.Namespace[namespace]
-		if project == nil {
-			return errors.New(fmt.Sprintf("Project was not loaded for \"%s\" task", name))
+		namespace, taskName := project.namespaceTaskName(depName)
+		proj := project.Namespace[namespace]
+		if proj == nil {
+			fmt.Errorf("Project was not loaded for \"%s\" task", name)
 		}
-		self.Namespace[namespace].RunLog(taskName, name+" > "+depName)
+		project.Namespace[namespace].RunLog(taskName, name+" > "+depName)
 	}
 	task.RunFromEvent(e)
 	Infof(logname, "end\n")
 	return nil
 }
 
-func (self *Project) Usage() {
+// Usage prints usage about the app and tasks.
+func (project *Project) Usage() {
 	flag.Usage()
 	fmt.Printf("\nTasks\n\n")
 
 	names := []string{}
 	m := map[string]*Task{}
-	for ns, proj := range self.Namespace {
+	for ns, proj := range project.Namespace {
 		if ns != "" {
 			ns += ":"
 		}
@@ -111,15 +114,16 @@ func (self *Project) Usage() {
 	}
 }
 
-func (self *Project) Use(namespace string, projectFunc func(*Project)) {
+// Use uses another project's task within a namespace.
+func (project *Project) Use(namespace string, projectFunc func(*Project)) {
 	namespace = strings.Trim(namespace, ":")
-	project := NewProject()
-	projectFunc(project)
-	self.Namespace[namespace] = project
+	proj := NewProject()
+	projectFunc(proj)
+	project.Namespace[namespace] = proj
 }
 
-// Tasks adds a task to the project.
-func (self *Project) Task(name string, args ...interface{}) *Task {
+// Task adds a task to the project.
+func (project *Project) Task(name string, args ...interface{}) *Task {
 	task := &Task{Name: name}
 
 	for _, t := range args {
@@ -142,7 +146,7 @@ func (self *Project) Task(name string, args ...interface{}) *Task {
 		task.Description = "Runs " + name + " task"
 	}
 
-	self.Tasks[name] = task
+	project.Tasks[name] = task
 
 	return task
 }
@@ -190,7 +194,7 @@ func watchTask(root string, taskName string, handler func(e *fsnotify.FileEvent)
 
 // Watch watches the Files of a task and reruns the task on a watch event. Any
 // dependency is also watched.
-func (self *Project) Watch(names []string) {
+func (project *Project) Watch(names []string) {
 	funcs := []func(){}
 
 	taskClosure := func(project *Project, task *Task, taskname string) func() {
@@ -203,19 +207,19 @@ func (self *Project) Watch(names []string) {
 	}
 
 	for _, taskname := range names {
-		project, task := self.mustTask(taskname)
+		proj, task := project.mustTask(taskname)
 
 		if len(task.WatchFiles) > 0 {
-			funcs = append(funcs, taskClosure(project, task, taskname))
+			funcs = append(funcs, taskClosure(proj, task, taskname))
 		}
 
 		// TODO should this be recursive? --mario
 		if len(task.Dependencies) > 0 {
 			for _, depname := range task.Dependencies {
-				project, task := self.mustTask(depname)
+				proj, task := project.mustTask(depname)
 				log.Printf("depen w task", task)
 				if len(task.WatchFiles) > 0 {
-					funcs = append(funcs, taskClosure(project, task, taskname))
+					funcs = append(funcs, taskClosure(proj, task, taskname))
 				}
 			}
 		}
