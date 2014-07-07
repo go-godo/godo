@@ -17,7 +17,6 @@ func Run(projectFunc func(*Project)) {
 
 	// Run each task including their dependencies.
 	args := flag.Args()
-
 	if len(args) == 0 {
 		if project.Tasks["default"] != nil {
 			project.Run("default")

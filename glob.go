@@ -140,6 +140,7 @@ func Glob(patterns []string) ([]*FileAsset, []*RegexpInfo, error) {
 				if re.MatchString(file.Path) {
 					// TODO closure problem assigning &file
 					tmp := file
+					tmp.PatternRoot = root
 					m[file.Path] = &tmp
 				}
 			}
@@ -160,7 +161,10 @@ func Glob(patterns []string) ([]*FileAsset, []*RegexpInfo, error) {
 // FileAsset contains file information and path from globbing.
 type FileAsset struct {
 	os.FileInfo
+	// Path to asset
 	Path string
+	// PatternRoot is used to calculate offsets when writing to destination dir
+	PatternRoot string
 }
 
 // hasMeta determines if a path has special chars used to build a Regexp.

@@ -179,7 +179,7 @@ func watchTask(root string, taskName string, handler func(e *fsnotify.FileEvent)
 			firstTime = false
 		}
 		event := <-watcher.Event
-		//changing a file sends rename and create as two separate events
+		// Changing a file sends rename and create as two separate events
 		if event.IsRename() {
 			lastRename = event.Name
 		}

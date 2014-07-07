@@ -6,7 +6,7 @@ This is a trivial example.
 
 To build the HTML templates into functions
 
-    go get github.com/mgutz/gorazor
+    go get github.com/mgutz/razor
     go run gosu.go views
 
 To build stylesheets you need Node.js and LESS

@@ -22,7 +22,7 @@ type Context struct {
 // a task to the project.
 type Files []string
 
-// A Task encapsulates a handler that executes some use defined work.
+// A Task is an operation performed on a user's project directory.
 type Task struct {
 	Name           string
 	Description    string
