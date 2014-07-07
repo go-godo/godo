@@ -100,7 +100,7 @@ To add a task with Dependencies
 p.Task("name", []string{"dep1", "dep2"})
 ```
 
-To enable watching on a task, add glob patterns
+To enable watching on a task, add glob patterns for the files to be watched
 
 ```go
 // watches all files ending with "go.html"
