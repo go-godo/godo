@@ -157,7 +157,7 @@ func shortestDir(files []*FileAsset) string {
 	return path.Dir(dirs[0])
 }
 
-func watchTask(root string, taskName string, handler func(e *fsnotify.FileEvent)) {
+func watchTask(root string, logName string, handler func(e *fsnotify.FileEvent)) {
 	bufferSize := 2048
 	watcher, err := fsnotify.NewWatcher(bufferSize)
 	if err != nil {
@@ -175,7 +175,7 @@ func watchTask(root string, taskName string, handler func(e *fsnotify.FileEvent)
 	lastRename := ""
 	for {
 		if firstTime {
-			Infof(taskName, "watching %s ...\n", magenta(root))
+			Infof(logName, "watching %s ...\n", magenta(root))
 			firstTime = false
 		}
 		event := <-watcher.Event
@@ -210,10 +210,10 @@ func (project *Project) Watch(names []string) {
 		}
 	}
 
-	taskClosure := func(project *Project, task *Task, taskname string) func() {
+	taskClosure := func(project *Project, task *Task, taskname string, logName string) func() {
 		root := shortestDir(task.WatchFiles)
 		return func() {
-			watchTask(root, taskname, func(e *fsnotify.FileEvent) {
+			watchTask(root, logName, func(e *fsnotify.FileEvent) {
 				project.run(taskname, taskname, e)
 			})
 		}
@@ -223,7 +223,7 @@ func (project *Project) Watch(names []string) {
 		proj, task := project.mustTask(taskname)
 
 		if len(task.WatchFiles) > 0 {
-			funcs = append(funcs, taskClosure(proj, task, taskname))
+			funcs = append(funcs, taskClosure(proj, task, taskname, taskname))
 		}
 
 		// TODO should this be recursive? --mario
@@ -231,7 +231,7 @@ func (project *Project) Watch(names []string) {
 			for _, depname := range task.Dependencies {
 				proj, task := project.mustTask(depname)
 				if len(task.WatchFiles) > 0 {
-					funcs = append(funcs, taskClosure(proj, task, taskname))
+					funcs = append(funcs, taskClosure(proj, task, taskname, taskname+">"+depname))
 				}
 			}
 		}

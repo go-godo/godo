@@ -3,7 +3,9 @@ package gosu
 import (
 	"fmt"
 	"github.com/mgutz/ansi"
+	"os/exec"
 	"runtime"
+	"strings"
 )
 
 var cyan = ansi.ColorFunc("cyan")
@@ -40,4 +42,15 @@ func Errorf(group string, format string, any ...interface{}) {
 func Panicf(group string, format string, any ...interface{}) {
 	fmt.Printf(redInverse(group) + " ")
 	fmt.Printf(redInverse(format), any...)
+}
+
+// Exec is sugary version way to execute a command. Exec splits a string
+// on " " so do not use for complicated args.
+//
+//      Exec("java -jar plantuml.jar some-file.uml")
+func Exec(cmd string) {
+	args := strings.Split(cmd, " ")
+	executable := args[0]
+	args = args[1:]
+	exec.Command(executable, args...).Run()
 }
