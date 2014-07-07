@@ -2,12 +2,18 @@
 package fsnotify
 
 import (
-	//"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/howeyc/fsnotify"
+)
+
+const (
+	// IgnoreThresholdRange is the amount of time in ns to ignore when
+	// receiving watch events for the same file
+	IgnoreThresholdRange = 75
 )
 
 // Watcher is a wrapper around which adds some additional features:
@@ -57,6 +63,9 @@ func (w *Watcher) Close() error {
 }
 
 func (w *Watcher) eventHandle() {
+	cache := map[string]*os.FileInfo{}
+	mu := &sync.Mutex{}
+
 	for {
 		select {
 		case originEvent := <-w.Watcher.Event:
@@ -64,13 +73,23 @@ func (w *Watcher) eventHandle() {
 			if w.IsIgnorePath(originEvent.Name) {
 				continue
 			}
-			w.Event <- newFileEvent(originEvent)
 			//github.com/howeyc/fsnotify has not handle this stuff...
 			// you can not stat a delete file...
 			if originEvent.IsDelete() {
+				w.Event <- newFileEvent(originEvent)
 				continue
 			}
+
 			fi, err := os.Stat(originEvent.Name)
+			mu.Lock()
+			oldFI := cache[originEvent.Name]
+			cache[originEvent.Name] = &fi
+			mu.Unlock()
+			if oldFI != nil && fi.ModTime().UnixNano() < (*oldFI).ModTime().UnixNano()+IgnoreThresholdRange {
+				continue
+			}
+			w.Event <- newFileEvent(originEvent)
+
 			if err != nil {
 				//rename send two events,one old file,one new file,here ignore old one
 				if os.IsNotExist(err) {
