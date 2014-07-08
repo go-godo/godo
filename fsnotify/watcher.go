@@ -81,6 +81,11 @@ func (w *Watcher) eventHandle() {
 			}
 
 			fi, err := os.Stat(originEvent.Name)
+			// fsnotify is sending multiple MODIFY events for the same
+			// file which is likely OS related. The solution here is to
+			// compare the current stats of a file against its last stats
+			// (if any) and if it falls within a nanoseconds threshold,
+			// ignore it.
 			mu.Lock()
 			oldFI := cache[originEvent.Name]
 			cache[originEvent.Name] = &fi

@@ -2,25 +2,27 @@ package gosu
 
 import (
 	"bytes"
-	//"log"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"unicode/utf8"
+
+	"github.com/MichaelTJones/walk"
+	"github.com/mgutz/gosu/util"
 )
 
 const (
 	// NotSlash is any rune but path separator.
-	NotSlash = "[^/]"
+	notSlash = "[^/]"
 	// AnyRune is zero or more non-path separators.
-	AnyRune = NotSlash + "*"
+	anyRune = notSlash + "*"
 	// ZeroOrMoreDirectories is used by ** patterns.
-	ZeroOrMoreDirectories = "((?:[\\w\\.\\-]+\\/)*)"
+	zeroOrMoreDirectories = "((?:[\\w\\.\\-]+\\/)*)"
 	// TrailingStarStar matches everything inside directory.
-	TrailingStarStar = "/**"
+	trailingStarStar = "/**"
 	// SlashStarStarSlash maches zero or more directories.
-	SlashStarStarSlash = "/**/"
+	slashStarStarSlash = "/**/"
 )
 
 // RegexpInfo contains additional info about the Regexp created by a glob pattern.
@@ -29,7 +31,8 @@ type RegexpInfo struct {
 	Negate bool
 }
 
-// Globexp creates a Regexp from extended glob pattern.
+// Globexp builds a regular express from from extended glob pattern and then
+// returns a Regexp object from the pattern.
 func Globexp(glob string) *regexp.Regexp {
 	var re bytes.Buffer
 
@@ -52,7 +55,7 @@ func Globexp(glob string) *regexp.Regexp {
 			rest := glob[i:]
 			re.WriteRune('/')
 			if strings.HasPrefix(rest, "/**/") {
-				re.WriteString(ZeroOrMoreDirectories)
+				re.WriteString(zeroOrMoreDirectories)
 				w *= 4
 			} else if rest == "/**" {
 				re.WriteString(".*")
@@ -84,10 +87,10 @@ func Globexp(glob string) *regexp.Regexp {
 		case '*':
 			rest := glob[i:]
 			if strings.HasPrefix(rest, "**/") {
-				re.WriteString(ZeroOrMoreDirectories)
+				re.WriteString(zeroOrMoreDirectories)
 				w *= 3
 			} else {
-				re.WriteString(AnyRune)
+				re.WriteString(anyRune)
 			}
 		}
 
@@ -99,7 +102,7 @@ func Globexp(glob string) *regexp.Regexp {
 	return regexp.MustCompile(re.String())
 }
 
-// Glob returns files that match patterns.
+// Glob returns files and dirctories that match patterns.
 //
 // Special chars.
 //
@@ -133,15 +136,19 @@ func Glob(patterns []string) ([]*FileAsset, []*RegexpInfo, error) {
 			regexps = append(regexps, &RegexpInfo{Regexp: re})
 			root := patternRoot(pattern)
 			if root == "" {
-				Panicf("glob", "Cannot get root from pattern: %s", pattern)
+				util.Panic("glob", "Cannot get root from pattern: %s", pattern)
 			}
-			chann := walk(root)
-			for file := range chann {
+			fileAssets, err := walkFiles(root)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			for _, file := range fileAssets {
 				if re.MatchString(file.Path) {
 					// TODO closure problem assigning &file
 					tmp := file
 					tmp.PatternRoot = root
-					m[file.Path] = &tmp
+					m[file.Path] = tmp
 				}
 			}
 		}
@@ -205,18 +212,22 @@ func patternRoot(s string) string {
 	return root
 }
 
-// walk walks a directory starting at root returning all directories and files
+// walkFiles walks a directory starting at root returning all directories and files
 // include those found in subdirectories.
-func walk(root string) chan FileAsset {
-	chann := make(chan FileAsset)
-	go func() {
-		// TODO replace. The consensus is the built-in Walk is horribly slow.
-		filepath.Walk(root, func(path string, fi os.FileInfo, _ error) (err error) {
-			result := FileAsset{FileInfo: fi, Path: path}
-			chann <- result
-			return
-		})
-		defer close(chann)
-	}()
-	return chann
+func walkFiles(root string) ([]*FileAsset, error) {
+	fileAssets := []*FileAsset{}
+	var lock sync.Mutex
+	visitor := func(path string, info os.FileInfo, err error) error {
+		if err == nil {
+			lock.Lock()
+			fileAssets = append(fileAssets, &FileAsset{FileInfo: info, Path: path})
+			lock.Unlock()
+		}
+		return nil
+	}
+	err := walk.Walk(root, visitor)
+	if err != nil {
+		return nil, err
+	}
+	return fileAssets, nil
 }

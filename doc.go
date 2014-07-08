@@ -1,11 +1,11 @@
 // Package gosu is a project build toolkit for Go in the spirit of Rake, Grunt and
 // others. Gosu supports watching, file globs, tasks and modular projects.
 //
-// Gosu does not provide an executable. Instead, use gosu to build your own
-// project build tool. Gosu requires a project configuration function,
-// in which task are registered and other projects imported.
+// Gosu does not provide an executable. Use gosu to build a project build
+// tool. Gosu requires a project configuration function, in which task are
+// registered and other projects imported.
 //
-// Here is an example
+// For example
 //
 //      import "github.com/mgutz/gosu"
 //
@@ -31,12 +31,12 @@
 // Or
 //      go run gosu.go views
 //
-// To run default, which in turn runs "views", "styles"
+// To run the "default" task which runs the dependencies "views", "styles"
 //
 //      ./gosu
 //
 // Note the "views" task specifies "views/**/*.go.html" which is a glob pattern
-// used when watching. To rerun "views" whenever any file ending with "go.html"
+// for watching. To rerun "views" whenever any file ending with "go.html"
 // changes, run gosu in watch mode
 //
 //      ./gosu --watch

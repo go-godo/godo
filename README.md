@@ -1,9 +1,9 @@
 # gosu
 
 *gosu* is a build tool for Go in the spirit of Rake, Gulp, Projmate ...
-*gosu* supports watching, globbing, tasks and importing other projects.
+*gosu* supports watching, globbing, tasks and modular projects.
 
-_Asset.pipeline is in the works. Should be simpler than Gulp or Grunt._
+_Asset.pipeline is at [goa](http://github.com/mgutz/goa)_
 
 ## Install
 
@@ -71,7 +71,9 @@ All file patterns MUST start with a directory:
 func (project *Project) Task(name string, args ...interface{})
 ```
 
-To add a default task, which runs when a task name is not provided on the command line
+To add a default task, which runs when a task name is not provided on the command line.
+The best practice is to use the "default" task to define the most frequently used
+dependencies. Avoid defining a handler for "default"
 
 ```go
 p.Task("default", []string{"clean", "stylesheets", "views"})
@@ -80,6 +82,7 @@ p.Task("default", []string{"clean", "stylesheets", "views"})
 To add a task with description and Handler
 
 ```go
+// description is displayed in the Tasks help screen
 p.Task("name", "description", func() {
     // work here
 })
@@ -93,7 +96,7 @@ p.Task("name", "description", func(c *gosu.Context) {
 })
 ```
 
-To add a task with Dependencies
+To add a task with Dependencies only
 
 ```go
 // run dep1, dep2, name in sequence
@@ -105,7 +108,7 @@ To enable watching on a task, add glob patterns for the files to be watched
 ```go
 // watches all files ending with "go.html"
 p.Task("views", gosu.Files{"./views/**/*.go.html"}, func() {
-    // compile templates
+    // ...
 })
 ```
 
@@ -125,9 +128,9 @@ All tasks MUST have a Handler, ContextHandler or Dependencies.
 
 ### Import Project
 
-A large project can be broken into multiple projects or referenced from
-other projects. Imported projects need to be namespaced to avoid
-conflicts with names in the existing project.
+A large project can be broken into multiple projects or projects can be
+imported from other packages. Imported projects MUST be namespaced to avoid
+conflicts with tasks in your project.
 
 ```go
 import (
@@ -145,7 +148,7 @@ func Project(p *Project) {
 
 ## FAQ
 
-If you are receiving wierd events (Mac Users) please read [fsnotify](https://github.com/howeyc/fsnotify) FAQ
+If you are receiving weird events (Mac Users) please read [fsnotify](https://github.com/howeyc/fsnotify) FAQ
 
 ## LICENSE
 

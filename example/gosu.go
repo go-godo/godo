@@ -21,7 +21,7 @@ func Project(p *gosu.Project) {
 
 	p.Task("default", "Default task", []string{"views", "ext:sprite"})
 
-	p.Task("views", gosu.Files{"views/**/*.go.html"}, func() {
+	p.Task("views", gosu.Files{"views/**/*.go.html"}, func(c *gosu.Context) {
 		exec.Command("razor", "views", "views").Run()
 	})
 

@@ -6,15 +6,18 @@ import (
 	"os"
 	"path"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/mgutz/gosu/fsnotify"
+	"github.com/mgutz/gosu/util"
 )
 
 var watching = flag.Bool("watch", false, "Watch task and dependencies")
 var help = flag.Bool("help", false, "View this usage screen")
+var verbose = flag.Bool("verbose", false, "View more info like which file changed")
 
 // Project is a container for tasks.
 type Project struct {
@@ -35,13 +38,12 @@ func (project *Project) mustTask(name string) (*Project, *Task) {
 
 	proj := project.Namespace[namespace]
 	if proj == nil {
-		Panicf("project", "Could not find project having namespace \"%s\"\n", namespace)
+		util.Panic("project", "Could not find project having namespace \"%s\"\n", namespace)
 	}
 
 	task := proj.Tasks[taskName]
 	if task == nil {
-		Errorf("project", "Task is not defined \"%s\"\n", name)
-		os.Exit(1)
+		util.Panic("project", "Task is not defined \"%s\"\n", name)
 	}
 	return proj, task
 }
@@ -63,7 +65,7 @@ func (project *Project) Run(name string) {
 }
 
 // RunWithEvent runs a task by name and adds FileEvent e to the context.
-func (project *Project) RunWithEvent(name string, logName string, e *fsnotify.FileEvent) {
+func (project *Project) runWithEvent(name string, logName string, e *fsnotify.FileEvent) {
 	project.run(name, logName, e)
 }
 
@@ -78,7 +80,7 @@ func (project *Project) run(name string, logName string, e *fsnotify.FileEvent) 
 		if proj == nil {
 			fmt.Errorf("Project was not loaded for \"%s\" task", name)
 		}
-		project.Namespace[namespace].RunWithEvent(taskName, name+">"+depName, e)
+		project.Namespace[namespace].runWithEvent(taskName, name+">"+depName, e)
 	}
 	task.RunWithEvent(logName, e)
 	return nil
@@ -102,6 +104,14 @@ func (project *Project) Usage() {
 		}
 	}
 	sort.Strings(names)
+	longest := 0
+	for _, name := range names {
+		l := len(name)
+		if l > longest {
+			longest = l
+		}
+	}
+
 	for _, name := range names {
 		task := m[name]
 		description := task.Description
@@ -112,7 +122,7 @@ func (project *Project) Usage() {
 				description = "Runs " + name + " task"
 			}
 		}
-		fmt.Printf("  %-24s %s\n", cyan(name), description)
+		fmt.Printf("  %-"+strconv.Itoa(longest)+"s  %s\n", name, description)
 	}
 }
 
@@ -131,7 +141,7 @@ func (project *Project) Task(name string, args ...interface{}) *Task {
 	for _, t := range args {
 		switch t := t.(type) {
 		default:
-			Panicf("project", "unexpected type %T", t) // %T prints whatever type t has
+			util.Panic("project", "unexpected type %T", t) // %T prints whatever type t has
 		case Files:
 			task.WatchGlobs = t
 		case []string:
@@ -161,34 +171,23 @@ func watchTask(root string, logName string, handler func(e *fsnotify.FileEvent))
 	bufferSize := 2048
 	watcher, err := fsnotify.NewWatcher(bufferSize)
 	if err != nil {
-		Panicf("project", "%v\n", err)
+		util.Panic("project", "%v\n", err)
 	}
-	waitTime := time.Duration(0.2 * float64(time.Second))
+	waitTime := time.Duration(0.1 * float64(time.Second))
 	watcher.WatchRecursive(root)
 	watcher.ErrorHandler = func(err error) {
-		Errorf("project", "%v\n", err)
+		util.Error("project", "%v\n", err)
 	}
 
 	// this function will block forever, Ctrl+C to quit app
 	lastHappendTime := time.Now()
 	firstTime := true
-	lastRename := ""
 	for {
 		if firstTime {
-			Infof(logName, "watching %s ...\n", magenta(root))
+			util.Info(logName, "watching %s ...\n", root)
 			firstTime = false
 		}
 		event := <-watcher.Event
-		// Changing a file sends rename and create as two separate events
-		if event.IsRename() {
-			lastRename = event.Name
-		}
-		if event.IsCreate() {
-			if lastRename == event.Name {
-				continue
-			}
-			lastRename = ""
-		}
 		if event.Time.Before(lastHappendTime) {
 			continue
 		}
