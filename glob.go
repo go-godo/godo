@@ -2,6 +2,7 @@ package gosu
 
 import (
 	"bytes"
+	//"log"
 	"os"
 	"regexp"
 	"strings"
@@ -18,7 +19,7 @@ const (
 	// AnyRune is zero or more non-path separators.
 	anyRune = notSlash + "*"
 	// ZeroOrMoreDirectories is used by ** patterns.
-	zeroOrMoreDirectories = "((?:[\\w\\.\\-]+\\/)*)"
+	zeroOrMoreDirectories = `(?:[.{}\w\-\ ]+\/)*`
 	// TrailingStarStar matches everything inside directory.
 	trailingStarStar = "/**"
 	// SlashStarStarSlash maches zero or more directories.
@@ -74,7 +75,6 @@ func Globexp(glob string) *regexp.Regexp {
 				if glob[i+1:i+2] == "{" {
 					re.WriteString("\\{")
 					w *= 2
-					util.Debug("dbg", "escaped")
 					break
 				}
 			}

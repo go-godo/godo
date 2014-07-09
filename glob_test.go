@@ -64,6 +64,11 @@ func TestMatching(t *testing.T) {
 	if !re.MatchString("src/{{VERSION}}/1.foo") {
 		t.Error("{} should be escapable")
 	}
+
+	re = Globexp("public/**/*.uml")
+	if !re.MatchString("public/{{VERSION}}/123/.4-5/a b/main-diagram.uml") {
+		t.Error("should handle special chars")
+	}
 }
 
 func TestGlob(t *testing.T) {
