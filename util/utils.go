@@ -13,5 +13,8 @@ func Exec(cmd string) {
 	args := strings.Split(cmd, " ")
 	executable := args[0]
 	args = args[1:]
-	exec.Command(executable, args...).Run()
+	out, err := exec.Command(executable, args...).CombinedOutput()
+	if err != nil {
+		Error("", "%s\n\n%s\n", cmd, string(out))
+	}
 }
