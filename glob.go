@@ -38,8 +38,9 @@ func Globexp(glob string) *regexp.Regexp {
 
 	re.WriteString("^")
 
-	i, inGroup := 0, false
-	for i < len(glob) {
+	i, inGroup, L := 0, false, len(glob)
+
+	for i < L {
 		r, w := utf8.DecodeRuneInString(glob[i:])
 
 		switch r {
@@ -69,12 +70,24 @@ func Globexp(glob string) *regexp.Regexp {
 			re.WriteRune(r)
 
 		case '{':
+			if i < L-1 {
+				if glob[i+1:i+2] == "{" {
+					re.WriteString("\\{")
+					w *= 2
+					util.Debug("dbg", "escaped")
+					break
+				}
+			}
 			inGroup = true
 			re.WriteRune('(')
 
 		case '}':
-			inGroup = false
-			re.WriteRune(')')
+			if inGroup {
+				inGroup = false
+				re.WriteRune(')')
+			} else {
+				re.WriteRune('}')
+			}
 
 		case ',':
 			if inGroup {

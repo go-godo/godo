@@ -59,6 +59,11 @@ func TestMatching(t *testing.T) {
 	if !re.MatchString("src/test.html") || !re.MatchString("src/test.js") {
 		t.Error("{} should match options")
 	}
+
+	re = Globexp("**/{{{{VERSION}}/*.foo")
+	if !re.MatchString("src/{{VERSION}}/1.foo") {
+		t.Error("{} should be escapable")
+	}
 }
 
 func TestGlob(t *testing.T) {
