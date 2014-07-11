@@ -4,6 +4,7 @@ import (
 	"bytes"
 	//"log"
 	"os"
+	gpath "path"
 	"regexp"
 	"strings"
 	"sync"
@@ -137,32 +138,46 @@ func Glob(patterns []string) ([]*FileAsset, []*RegexpInfo, error) {
 		remove := strings.HasPrefix(pattern, "!")
 		if remove {
 			pattern = pattern[1:]
-			re := Globexp(pattern)
-			regexps = append(regexps, &RegexpInfo{Regexp: re, Negate: true})
-			for path := range m {
-				if re.MatchString(path) {
-					m[path] = nil
+			if hasMeta(pattern) {
+				re := Globexp(pattern)
+				regexps = append(regexps, &RegexpInfo{Regexp: re, Negate: true})
+				for path := range m {
+					if re.MatchString(path) {
+						m[path] = nil
+					}
 				}
+			} else {
+				path := gpath.Clean(pattern)
+				m[path] = nil
 			}
 		} else {
-			re := Globexp(pattern)
-			regexps = append(regexps, &RegexpInfo{Regexp: re})
-			root := patternRoot(pattern)
-			if root == "" {
-				util.Panic("glob", "Cannot get root from pattern: %s", pattern)
-			}
-			fileAssets, err := walkFiles(root)
-			if err != nil {
-				return nil, nil, err
-			}
-
-			for _, file := range fileAssets {
-				if re.MatchString(file.Path) {
-					// TODO closure problem assigning &file
-					tmp := file
-					tmp.PatternRoot = root
-					m[file.Path] = tmp
+			if hasMeta(pattern) {
+				re := Globexp(pattern)
+				regexps = append(regexps, &RegexpInfo{Regexp: re})
+				root := patternRoot(pattern)
+				if root == "" {
+					util.Panic("glob", "Cannot get root from pattern: %s", pattern)
 				}
+				fileAssets, err := walkFiles(root)
+				if err != nil {
+					return nil, nil, err
+				}
+
+				for _, file := range fileAssets {
+					if re.MatchString(file.Path) {
+						// TODO closure problem assigning &file
+						tmp := file
+						m[file.Path] = tmp
+					}
+				}
+			} else {
+				path := gpath.Clean(pattern)
+				info, err := os.Stat(path)
+				if err != nil {
+					return nil, nil, err
+				}
+				fa := &FileAsset{Path: path, FileInfo: info}
+				m[path] = fa
 			}
 		}
 	}
@@ -183,8 +198,6 @@ type FileAsset struct {
 	os.FileInfo
 	// Path to asset
 	Path string
-	// PatternRoot is used to calculate offsets when writing to destination dir
-	PatternRoot string
 }
 
 // hasMeta determines if a path has special chars used to build a Regexp.

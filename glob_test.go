@@ -72,7 +72,13 @@ func TestMatching(t *testing.T) {
 }
 
 func TestGlob(t *testing.T) {
-	files, _, _ := Glob([]string{"test/**/*.txt"})
+	files, _, _ := Glob([]string{"./test/foo.txt"})
+	if len(files) != 1 {
+		t.Log("files %v", files)
+		t.Error("should return file with no patterns")
+	}
+
+	files, _, _ = Glob([]string{"test/**/*.txt"})
 	if len(files) != 5 {
 		t.Log("files %v", files)
 		t.Error("should return all txt files")
