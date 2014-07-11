@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"os/exec"
 
 	"github.com/mgutz/gosu"
+	"github.com/mgutz/gosu/util"
 )
 
 // ImportedProject could be an imported project from someone else's library
@@ -22,7 +22,7 @@ func Project(p *gosu.Project) {
 	p.Task("default", "Default task", []string{"views", "ext:sprite"})
 
 	p.Task("views", gosu.Files{"views/**/*.go.html"}, func(c *gosu.Context) {
-		exec.Command("razor", "views", "views").Run()
+		util.Exec("razor views views")
 	})
 
 	p.Task("restart", "(Re)starts the app", gosu.Files{"**/*.go"}, func() {
