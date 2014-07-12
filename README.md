@@ -8,64 +8,67 @@ _Asset.pipeline is at [goa](http://github.com/mgutz/goa)_
 ## Install
 
 ```sh
-go get github.com/mgutz/gosu
+go get github.com/mgutz/gosu/gosu
 ```
 
 ## Example
 
-*gosu* does not have its own executable. Instead, use *gosu* to build your
-project build tool.
+Create a file `tasks/Gosufile.go`. Go is strict about package main and having multiple
+packages in the same dir. Learn to compromise and Go loves you back.
 
 ```go
+package tasks
+
 import (
+    "fmt"
     "github.com/mgutz/gosu"
+    "github.com/mgutz/gosu/util"
 )
 
 func Project(p *gosu.Project) {
-    p.Task("default", "Runs all tasks" []string{"stylesheets", "app"})
+    p.Task("default", []string{"files", "hello"})
 
-    p.Task("stylesheets", gosu.Files{"public/css/**/*.less"}, func(c *gosu.Context) {
-        if c.FileEvent != nil {
-            // c.FileEvent contains change event from watch
-        }
-        for _, f := range c.Task.WatchFiles {
-            // f.FileInfo and f.Path
-        }
+    p.Task("hello", func() {
+        util.Exec(`bash -c "echo Hello $USER!"`)
     })
 
-    p.Task("app", "(Re)runs the app", gosu.Files{"**/*.go"}, func() {
-        // use any restart package here
+    p.Task("files", gosu.Files{"**/*"}, func(c *gosu.Context) {
+        if c.FileEvent == nil {
+            for _, f := range c.Task.WatchFiles {
+                // f.FileInfo and f.Path
+                fmt.Printf("File: %s\n", f.Path)
+            }
+        } else {
+            // change event when watching
+            fmt.Printf("%v\n", c.FileEvent)
+        }
     })
-}
-
-func main() {
-    gosu.Run(Project)
 }
 ```
 
-To run default task: `go run main.go`
+To run default task: `gosu`
 
-To run a single task:  `go run main.go stylesheets`
+To run a single task:  `gosu files`
 
-To run and watch a task: `go run main.go --watch stylesheets`
+To run and watch a task: `gosu files --watch`
 
-Build your utility:
+To see all tasks: `gosu --help`
 
-```sh
-go build -o gosu main.go    # name it whatever you want
-gosu --watch stylesheets    # profit
-```
+To build your own utility
+
+1.  Project must be inside `package main`
+2.  Add this code
+
+    fun main() {
+        gosu.Run(Project)
+    }
+
 
 ## Syntax
 
-All file patterns MUST start with a directory:
-
--   OK  `"./test.go"`
--   Bad `"test.go"`
-
 ### Adding tasks
 
-`Project.Task` has variable arguments of type `interface{}` for usability.
+`Project.Task` has variable arguments of type `interface{}` for convenience.
 
 ```go
 func (project *Project) Task(name string, args ...interface{})

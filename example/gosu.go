@@ -30,7 +30,3 @@ func Project(p *gosu.Project) {
 		// (re)start your app
 	})
 }
-
-func main() {
-	gosu.Run(Project)
-}

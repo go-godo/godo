@@ -1,8 +1,8 @@
 package gosu
 
 import (
-	"flag"
 	"fmt"
+	flag "github.com/ogier/pflag"
 	"os"
 	"path"
 	"sort"
@@ -14,10 +14,6 @@ import (
 	"github.com/mgutz/gosu/fsnotify"
 	"github.com/mgutz/gosu/util"
 )
-
-var watching = flag.Bool("watch", false, "Watch task and dependencies")
-var help = flag.Bool("help", false, "View this usage screen")
-var verbose = flag.Bool("verbose", false, "View more info like which file changed")
 
 // Project is a container for tasks.
 type Project struct {

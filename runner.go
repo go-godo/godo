@@ -1,7 +1,14 @@
 package gosu
 
-import "flag"
-import "os"
+import (
+	"os"
+
+	flag "github.com/ogier/pflag"
+)
+
+var watching = flag.Bool("watch", false, "Watch task and dependencies")
+var help = flag.Bool("help", false, "View this usage screen")
+var verbose = flag.Bool("verbose", false, "View more info like which file changed")
 
 // Run runs a project as defined within projectFunc handler function.
 func Run(projectFunc func(*Project)) {
