@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/mgutz/gosu/fsnotify"
 	"github.com/mgutz/gosu/util"
+	"github.com/mgutz/gosu/watcher"
 )
 
 // Files type is use to discern between files and dependencies when adding
@@ -55,7 +55,7 @@ func (task *Task) Run() {
 }
 
 // isWatchedFile determines if a FileEvent's file is a watched file
-func (task *Task) isWatchedFile(e *fsnotify.FileEvent) bool {
+func (task *Task) isWatchedFile(e *watcher.FileEvent) bool {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return false
@@ -86,7 +86,7 @@ func (task *Task) isWatchedFile(e *fsnotify.FileEvent) bool {
 // RunWithEvent runs this task when triggered from a watch.
 // *e* FileEvent contains information about the file/directory which changed
 // in watch mode.
-func (task *Task) RunWithEvent(logName string, e *fsnotify.FileEvent) {
+func (task *Task) RunWithEvent(logName string, e *watcher.FileEvent) {
 	start := time.Now()
 	if len(task.WatchGlobs) > 0 && len(task.WatchFiles) == 0 {
 		task.expandGlobs()

@@ -10,16 +10,24 @@ import (
 	"github.com/mgutz/str"
 )
 
-// Exec is sugary way to execute a command. Exec converts cmd into an
-// an executable and an argv.
-func Exec(command string) {
+// ExecError is a simple way to execute a CLI utility.
+func ExecError(command string, args ...string) error {
 	argv := str.ToArgv(command)
 	executable := argv[0]
 	argv = argv[1:]
+	for _, arg := range args {
+		argv = append(argv, arg)
+	}
 	cmd := exec.Command(executable, argv...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	err := cmd.Run()
+	return cmd.Run()
+}
+
+// Exec is simple way to execute a CLI utility. `command` is parsed
+// for arguments. args is optional and unparsed.
+func Exec(command string, args ...string) {
+	err := ExecError(command, args...)
 	if err != nil {
 		Error("ERR", "running: %s\n", command)
 	}

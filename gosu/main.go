@@ -13,6 +13,13 @@ import (
 	"github.com/mgutz/str"
 )
 
+func checkError(err error, format string, args ...interface{}) {
+	if err != nil {
+		util.Error("ERR", format, args...)
+		os.Exit(1)
+	}
+}
+
 func hasMain(data []byte) bool {
 	hasMainRe := regexp.MustCompile(`\nfunc main\(`)
 	matches := hasMainRe.Find(data)
@@ -26,7 +33,7 @@ func isPackageMain(data []byte) bool {
 }
 
 func main() {
-	gosuFiles := []string{"Gosufile.go", "tasks/Gosufile.go", "bin/Gosufile.go"}
+	gosuFiles := []string{"Gosufile.go", "tasks/Gosufile.go"}
 	src := ""
 	rel := ""
 	for _, filename := range gosuFiles {
@@ -49,15 +56,14 @@ func main() {
 	}
 	cmd := "go run " + src + " " + strings.Join(os.Args[1:], " ")
 	//log.Printf("DBG %s\n", cmd)
-	util.Exec(cmd)
+	// errors are displayed by tasks
+	util.ExecError(cmd)
 }
 
 func buildMain(src string) string {
 	tempFile := ""
 	data, err := ioutil.ReadFile(src)
-	if err != nil {
-		log.Panicf("Could not read: %s", src)
-	}
+	checkError(err, "%s not found\n", src)
 
 	if !hasMain(data) {
 		if isPackageMain(data) {

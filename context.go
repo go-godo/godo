@@ -1,7 +1,8 @@
 package gosu
 
 import (
-	"github.com/mgutz/gosu/fsnotify"
+	"github.com/go-fsnotify/fsnotify"
+	"github.com/mgutz/gosu/watcher"
 )
 
 // Context is the data passed to a task.
@@ -10,13 +11,13 @@ type Context struct {
 	Task *Task
 
 	// FileEvent is an event from the watcher with change details.
-	FileEvent *fsnotify.FileEvent
+	FileEvent *watcher.FileEvent
 }
 
 // AnyFile returns either a non-DELETe FileEvent file or the WatchGlob patterns which
 // can be used by goa.Load()
 func (context *Context) AnyFile() []string {
-	if context.FileEvent != nil && !context.FileEvent.IsDelete() {
+	if context.FileEvent != nil && context.FileEvent.Op != fsnotify.Remove {
 		return []string{context.FileEvent.Name}
 	}
 	return context.Task.WatchGlobs

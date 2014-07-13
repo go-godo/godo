@@ -1,13 +1,13 @@
-// Package fsnotify implements filesystem notification,.
-package fsnotify
+// Package watcher implements filesystem notification,.
+package watcher
 
 import (
+	"github.com/go-fsnotify/fsnotify"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
-
-	"github.com/howeyc/fsnotify"
 )
 
 const (
@@ -68,32 +68,37 @@ func (w *Watcher) eventHandle() {
 
 	for {
 		select {
-		case originEvent := <-w.Watcher.Event:
-			//fmt.Printf("originEvent %+v\n", originEvent)
-			if w.IsIgnorePath(originEvent.Name) {
-				continue
-			}
-			//github.com/howeyc/fsnotify has not handle this stuff...
-			// you can not stat a delete file...
-			if originEvent.IsDelete() {
-				w.Event <- newFileEvent(originEvent)
+		case event := <-w.Watcher.Events:
+			//fmt.Printf("event %+v\n", event)
+			if w.IsIgnorePath(event.Name) {
 				continue
 			}
 
-			fi, err := os.Stat(originEvent.Name)
+			// you can not stat a delete file...
+			if event.Op == fsnotify.Remove {
+				w.Event <- newFileEvent(event)
+				continue
+			}
+
+			fi, err := os.Stat(event.Name)
+			if os.IsNotExist(err) {
+				log.Println(event)
+				continue
+			}
+
 			// fsnotify is sending multiple MODIFY events for the same
 			// file which is likely OS related. The solution here is to
 			// compare the current stats of a file against its last stats
 			// (if any) and if it falls within a nanoseconds threshold,
 			// ignore it.
 			mu.Lock()
-			oldFI := cache[originEvent.Name]
-			cache[originEvent.Name] = &fi
+			oldFI := cache[event.Name]
+			cache[event.Name] = &fi
 			mu.Unlock()
 			if oldFI != nil && fi.ModTime().UnixNano() < (*oldFI).ModTime().UnixNano()+IgnoreThresholdRange {
 				continue
 			}
-			w.Event <- newFileEvent(originEvent)
+			w.Event <- newFileEvent(event)
 
 			if err != nil {
 				//rename send two events,one old file,one new file,here ignore old one
@@ -104,9 +109,9 @@ func (w *Watcher) eventHandle() {
 				continue
 			}
 			if fi.IsDir() {
-				w.WatchRecursive(originEvent.Name)
+				w.WatchRecursive(event.Name)
 			}
-		case err := <-w.Watcher.Error:
+		case err := <-w.Watcher.Errors:
 			w.errorHandle(err)
 		case _ = <-w.quit:
 			break
@@ -140,7 +145,7 @@ func (w *Watcher) WatchRecursive(path string) error {
 	}
 	folders, err := w.getSubFolders(path)
 	for _, v := range folders {
-		err = w.Watcher.Watch(v)
+		err = w.Watcher.Add(v)
 		if err != nil {
 			return err
 		}

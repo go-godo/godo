@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mgutz/gosu/fsnotify"
 	"github.com/mgutz/gosu/util"
+	"github.com/mgutz/gosu/watcher"
 )
 
 // Project is a container for tasks.
@@ -39,7 +39,8 @@ func (project *Project) mustTask(name string) (*Project, *Task) {
 
 	task := proj.Tasks[taskName]
 	if task == nil {
-		util.Panic("project", "Task is not defined \"%s\"\n", name)
+		util.Error("ERR", `"%s" task is not defined`+"\n", name)
+		os.Exit(1)
 	}
 	return proj, task
 }
@@ -61,12 +62,12 @@ func (project *Project) Run(name string) {
 }
 
 // RunWithEvent runs a task by name and adds FileEvent e to the context.
-func (project *Project) runWithEvent(name string, logName string, e *fsnotify.FileEvent) {
+func (project *Project) runWithEvent(name string, logName string, e *watcher.FileEvent) {
 	project.run(name, logName, e)
 }
 
 // run runs the project, executing any tasks named on the command line.
-func (project *Project) run(name string, logName string, e *fsnotify.FileEvent) error {
+func (project *Project) run(name string, logName string, e *watcher.FileEvent) error {
 	_, task := project.mustTask(name)
 
 	// Run each task including their dependencies.
@@ -163,15 +164,15 @@ func shortestDir(files []*FileAsset) string {
 	return path.Dir(dirs[0])
 }
 
-func watchTask(root string, logName string, handler func(e *fsnotify.FileEvent)) {
+func watchTask(root string, logName string, handler func(e *watcher.FileEvent)) {
 	bufferSize := 2048
-	watcher, err := fsnotify.NewWatcher(bufferSize)
+	watchr, err := watcher.NewWatcher(bufferSize)
 	if err != nil {
 		util.Panic("project", "%v\n", err)
 	}
 	waitTime := time.Duration(0.1 * float64(time.Second))
-	watcher.WatchRecursive(root)
-	watcher.ErrorHandler = func(err error) {
+	watchr.WatchRecursive(root)
+	watchr.ErrorHandler = func(err error) {
 		util.Error("project", "%v\n", err)
 	}
 
@@ -183,7 +184,7 @@ func watchTask(root string, logName string, handler func(e *fsnotify.FileEvent))
 			util.Info(logName, "watching %s ...\n", root)
 			firstTime = false
 		}
-		event := <-watcher.Event
+		event := <-watchr.Event
 		if event.Time.Before(lastHappendTime) {
 			continue
 		}
@@ -208,7 +209,7 @@ func (project *Project) Watch(names []string) {
 	taskClosure := func(project *Project, task *Task, taskname string, logName string) func() {
 		root := shortestDir(task.WatchFiles)
 		return func() {
-			watchTask(root, logName, func(e *fsnotify.FileEvent) {
+			watchTask(root, logName, func(e *watcher.FileEvent) {
 				project.run(taskname, taskname, e)
 			})
 		}
