@@ -116,7 +116,8 @@ func (task *Task) RunWithEvent(logName string, e *fsnotify.FileEvent) {
 		// no need to log if just dependency
 		log = false
 	} else {
-		util.Panic(task.Name, "Handler, ContextHandler or Dependencies is required")
+		util.Info(task.Name, "Ignored. Task does not have a handler or dependencies.\n")
+		return
 	}
 
 	elapsed := time.Now().Sub(start)
