@@ -70,7 +70,7 @@ func buildMain(src string) string {
 			msg := `%s is not runnable. Rename package OR make it runnable by adding
 
     func main() {
-        gosu.Run(Project)
+        gosu.Run(Tasks)
     }
 `
 			fmt.Printf(msg, src)
@@ -84,7 +84,7 @@ func buildMain(src string) string {
 	            pkg "{{package}}"
 	        )
 	        func main() {
-	            gosu.Run(pkg.Project)
+	            gosu.Run(pkg.Tasks)
 	        }
 	    `
 		packageName, err := util.PackageName(src)

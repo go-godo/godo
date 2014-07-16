@@ -3,29 +3,30 @@ package tasks
 import (
 	"fmt"
 
-	"github.com/mgutz/gosu"
+	. "github.com/mgutz/gosu"
 	"github.com/mgutz/gosu/util"
 )
 
 // ImportedProject could be an imported project from someone else's library
-func ImportedProject(p *gosu.Project) {
-	p.Task("sprite", func(c *gosu.Context) {
+func ImportedTasks(task TaskFunc) {
+	task("sprite", func(c *Context) {
 		fmt.Printf("creating sprite image\n")
 	})
 }
 
 // Project is your local project. Define your tasks here.
-func Project(p *gosu.Project) {
+func Tasks(task TaskFunc, use UseFunc) {
 	// User other projects in namespace
-	p.Use("ext", ImportedProject)
+	use("ext", ImportedTasks)
 
-	p.Task("default", "Default task", []string{"views", "ext:sprite"})
+	//p.Task("default", "Default task", []string{"views", "ext:sprite"})
+	task("default", "Default task", Pre{"views", "ext:sprite"})
 
-	p.Task("views", gosu.Files{"views/**/*.go.html"}, func(c *gosu.Context) {
+	task("views", Watch{"views/**/*.go.html"}, func(c *Context) {
 		util.Exec("razor views views")
 	})
 
-	p.Task("restart", "(Re)starts the app", gosu.Files{"**/*.go"}, func() {
+	task("restart", "(Re)starts the app", Watch{"**/*.go"}, func() {
 		fmt.Printf("Restarting app")
 		// (re)start your app
 	})

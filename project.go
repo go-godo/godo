@@ -124,10 +124,10 @@ func (project *Project) Usage() {
 }
 
 // Use uses another project's task within a namespace.
-func (project *Project) Use(namespace string, projectFunc func(*Project)) {
+func (project *Project) Use(namespace string, tasksFunc interface{}) {
 	namespace = strings.Trim(namespace, ":")
 	proj := NewProject()
-	projectFunc(proj)
+	proj.Define(tasksFunc)
 	project.Namespace[namespace] = proj
 }
 
@@ -139,9 +139,9 @@ func (project *Project) Task(name string, args ...interface{}) *Task {
 		switch t := t.(type) {
 		default:
 			util.Panic("project", "unexpected type %T", t) // %T prints whatever type t has
-		case Files:
+		case Watch:
 			task.WatchGlobs = t
-		case []string:
+		case Pre:
 			task.Dependencies = t
 		case func():
 			task.Handler = t
@@ -192,6 +192,19 @@ func watchTask(root string, logName string, handler func(e *watcher.FileEvent)) 
 		// prevent multiple restart in short time
 		time.Sleep(waitTime)
 		lastHappendTime = time.Now()
+	}
+}
+
+// Define defines tasks
+func (project *Project) Define(tasksFunc interface{}) {
+	switch fn := tasksFunc.(type) {
+	default:
+		util.Error("ERR", "Invalid tasks function")
+		os.Exit(1)
+	case func(TaskFunc):
+		fn(project.Task)
+	case func(TaskFunc, UseFunc):
+		fn(project.Task, project.Use)
 	}
 }
 

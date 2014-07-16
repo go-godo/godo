@@ -8,12 +8,12 @@ import (
 func TestSimpleTask(t *testing.T) {
 	project := NewProject()
 	result := ""
-	var proj = func(p *Project) {
-		p.Task("foo", func(c *Context) {
+	tasks := func(task TaskFunc) {
+		task("foo", func(c *Context) {
 			result = "A"
 		})
 	}
-	proj(project)
+	project.Define(tasks)
 	project.Run("foo")
 	if result != "A" {
 		t.Error("should have run simple task")
@@ -23,14 +23,14 @@ func TestSimpleTask(t *testing.T) {
 func TestDependency(t *testing.T) {
 	project := NewProject()
 	result := ""
-	var proj = func(p *Project) {
-		p.Task("foo", func(c *Context) {
+	tasks := func(task TaskFunc) {
+		task("foo", func(c *Context) {
 			result = "A"
 		})
 
-		p.Task("bar", []string{"foo"})
+		task("bar", Pre{"foo"})
 	}
-	proj(project)
+	project.Define(tasks)
 	project.Run("bar")
 	if result != "A" {
 		t.Error("should have run task's dependency")
@@ -40,27 +40,27 @@ func TestDependency(t *testing.T) {
 func TestMultiProject(t *testing.T) {
 	result := ""
 
-	var otherProj = func(p *Project) {
-		p.Task("foo", []string{"bar"}, func(c *Context) {
+	otherTasks := func(task TaskFunc) {
+		task("foo", Pre{"bar"}, func(c *Context) {
 			result += "B"
 		})
 
-		p.Task("bar", func(c *Context) {
+		task("bar", func(c *Context) {
 			result += "C"
 		})
 	}
 
 	project := NewProject()
-	var proj = func(p *Project) {
-		p.Use("other", otherProj)
+	tasks := func(task TaskFunc, use UseFunc) {
+		use("other", otherTasks)
 
-		p.Task("foo", func(c *Context) {
+		task("foo", func(c *Context) {
 			result += "A"
 		})
 
-		p.Task("bar", []string{"foo", "other:foo"})
+		task("bar", Pre{"foo", "other:foo"})
 	}
-	proj(project)
+	project.Define(tasks)
 
 	project.Run("bar")
 	if result != "ACB" {
@@ -71,14 +71,14 @@ func TestMultiProject(t *testing.T) {
 func TestShouldExpandGlobs(t *testing.T) {
 	project := NewProject()
 	result := ""
-	var proj = func(p *Project) {
-		p.Task("foo", Files{"test/**/*.txt"}, func(c *Context) {
+	tasks := func(task TaskFunc) {
+		task("foo", Watch{"test/**/*.txt"}, func(c *Context) {
 			result = "A"
 		})
 
-		p.Task("bar", Files{"test/**/*.html"}, []string{"foo"})
+		task("bar", Watch{"test/**/*.html"}, Pre{"foo"})
 	}
-	proj(project)
+	project.Define(tasks)
 	project.Run("bar")
 	if len(project.Tasks["bar"].WatchFiles) != 1 {
 		t.Error("bar should have 1 HTML file")

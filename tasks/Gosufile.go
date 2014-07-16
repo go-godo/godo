@@ -5,23 +5,23 @@ import (
 
 	"github.com/mgutz/goa"
 	f "github.com/mgutz/goa/filter"
-	"github.com/mgutz/gosu"
+	. "github.com/mgutz/gosu"
 	"github.com/mgutz/gosu/util"
 	"github.com/mgutz/str"
 )
 
 // Project is local project.
-func Project(p *gosu.Project) {
+func Tasks(task TaskFunc) {
 
-	p.Task("hello", func() {
+	task("hello", func() {
 		util.Exec(`bash -c "echo Hello $USER!"`)
 	})
 
-	p.Task("hello2", func() {
+	task("hello2", func() {
 		fmt.Println(Hello("foobar"))
 	})
 
-	p.Task("files", gosu.Files{"**/*"}, func(c *gosu.Context) {
+	task("files", Files{"**/*"}, func(c *Context) {
 		if c.FileEvent == nil {
 			for _, f := range c.Task.WatchFiles {
 				// f.FileInfo and f.Path
@@ -33,15 +33,15 @@ func Project(p *gosu.Project) {
 		}
 	})
 
-	p.Task("dist", []string{"lint", "readme"})
+	task("dist", Pre{"lint", "readme"})
 
-	p.Task("lint", func() {
+	task("lint", func() {
 		util.Exec("golint .")
 		util.Exec("gofmt -w -s .")
 		util.Exec("go vet .")
 	})
 
-	p.Task("readme", func() {
+	task("readme", func() {
 		util.Exec("godocdown -o README.md")
 		// add godoc
 		goa.Pipe(

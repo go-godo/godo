@@ -29,7 +29,7 @@ func ExecError(command string, args ...string) error {
 func Exec(command string, args ...string) {
 	err := ExecError(command, args...)
 	if err != nil {
-		Error("ERR", "running: %s\n", command)
+		Error("ERR", "%s\n%+v", command, err)
 	}
 }
 

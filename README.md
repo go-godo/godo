@@ -21,18 +21,18 @@ package tasks
 
 import (
     "fmt"
-    "github.com/mgutz/gosu"
+    . "github.com/mgutz/gosu"
     "github.com/mgutz/gosu/util"
 )
 
-func Project(p *gosu.Project) {
-    p.Task("default", []string{"files", "hello"})
+func Tasks(task TaskFunc) {
+    task("default", Pre{"files", "hello"})
 
-    p.Task("hello", func() {
+    task("hello", func() {
         util.Exec(`bash -c "echo Hello $USER!"`)
     })
 
-    p.Task("files", gosu.Files{"**/*"}, func(c *gosu.Context) {
+    task("files", Files{"**/*"}, func(c *Context) {
         if c.FileEvent == nil {
             for _, f := range c.Task.WatchFiles {
                 // f.FileInfo and f.Path
@@ -60,7 +60,7 @@ To build your own utility
 2.  Add this code
 
     fun main() {
-        gosu.Run(Project)
+        gosu.Run(Tasks)
     }
 
 
@@ -68,33 +68,27 @@ To build your own utility
 
 ### Adding tasks
 
-`Project.Task` has variable arguments of type `interface{}` for convenience.
-
-```go
-func (project *Project) Task(name string, args ...interface{})
-```
-
 To add a default task, which runs when a task name is not provided on the command line.
 The best practice is to use the "default" task to define the most frequently used
 dependencies. Avoid defining a handler for "default"
 
 ```go
-p.Task("default", []string{"clean", "stylesheets", "views"})
+task("default", Pre{"clean", "stylesheets", "views"})
 ```
 
 To add a task with description and Handler
 
 ```go
 // description is displayed in the Tasks help screen
-p.Task("name", "description", func() {
-    // work here
+task("name", "description", func() {
+    // ...
 })
 ```
 
 To add a task with description and ContextHandler
 
 ```go
-p.Task("name", "description", func(c *gosu.Context) {
+task("name", "description", func(c *gosu.Context) {
     // use context to get info about c.FileEvent or c.Task
 })
 ```
@@ -103,14 +97,13 @@ To add a task with Dependencies only
 
 ```go
 // run dep1, dep2, name in sequence
-p.Task("name", []string{"dep1", "dep2"})
+task("name", Pre{"dep1", "dep2"})
 ```
 
 To enable watching on a task, add glob patterns for the files to be watched
 
 ```go
-// watches all files ending with "go.html"
-p.Task("views", gosu.Files{"./views/**/*.go.html"}, func() {
+task("views", Watch{"./views/**/*.go.html"}, func() {
     // ...
 })
 ```
@@ -140,12 +133,12 @@ import (
     "github.com/acme/project"
 )
 
-func Project(p *Project) {
+func Tasks(task TaskFunc, use UseFunc) {
     // Use  it within this project and assign namespace "ns"
-    p.Use("ns", project.Project)
+    use("ns", project.Tasks)
 
     // Add as dependency, note the namespace
-    p.Task("default", []string{"ns:sprite"})
+    task("default", Pre{"ns:sprite"})
 }
 ```
 

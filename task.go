@@ -14,6 +14,16 @@ import (
 // a task to the project.
 type Files []string
 
+// Watch type defines the glob patterns to use for watching.
+type Watch []string
+
+// Pre are dependencies which are run before a task.
+type Pre []string
+
+// TaskFunction is the signature of the function used to define a type.
+type TaskFunc func(string, ...interface{}) *Task
+type UseFunc func(string, interface{})
+
 // A Task is an operation performed on a user's project directory.
 type Task struct {
 	Name           string
@@ -25,7 +35,7 @@ type Task struct {
 	// Watches are the files are watched. On change the task is rerun. For example `**/*.less`
 	// Usually Watches and Sources are the same.
 	WatchFiles   []*FileAsset
-	WatchGlobs   Files
+	WatchGlobs   []string
 	WatchRegexps []*RegexpInfo
 
 	// Complete indicates whether this task has already ran. This flag is
