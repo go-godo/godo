@@ -92,13 +92,14 @@ func buildMain(src string) string {
 			panic(err)
 		}
 		code := str.Template(template, map[string]interface{}{
-			"package": packageName,
+			"package": filepath.ToSlash(packageName),
 		})
 		//log.Println("DBG template", code)
 		tempDir, err := ioutil.TempDir("", "gosu")
 		if err != nil {
 			panic("Could not create temp directory")
 		}
+		//log.Printf("code\n %s\n", code)
 		tempFile = filepath.Join(tempDir, "Gosufile_main.go")
 		err = ioutil.WriteFile(tempFile, []byte(code), 0644)
 		if err != nil {

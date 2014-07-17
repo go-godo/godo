@@ -25,14 +25,14 @@ import (
     "github.com/mgutz/gosu/util"
 )
 
-func Tasks(task TaskFunc) {
-    task("default", Pre{"files", "hello"})
+func Tasks(p *Project) {
+    p.Task("default", Pre{"files", "hello"})
 
-    task("hello", func() {
+    p.Task("hello", func() {
         util.Exec(`bash -c "echo Hello $USER!"`)
     })
 
-    task("files", Watch{"**/*"}, func(c *Context) {
+    p.Task("files", Watch{"**/*"}, func(c *Context) {
         if c.FileEvent == nil {
             for _, f := range c.Task.WatchFiles {
                 // f.FileInfo and f.Path
@@ -73,14 +73,14 @@ The best practice is to use the "default" task to define the most frequently use
 dependencies. Avoid defining a handler for "default"
 
 ```go
-task("default", Pre{"clean", "stylesheets", "views"})
+p.Task("default", Pre{"clean", "stylesheets", "views"})
 ```
 
 To add a task with description and Handler
 
 ```go
 // description is displayed in the Tasks help screen
-task("name", "description", func() {
+p.Task("name", "description", func() {
     // ...
 })
 ```
@@ -88,7 +88,7 @@ task("name", "description", func() {
 To add a task with description and ContextHandler
 
 ```go
-task("name", "description", func(c *gosu.Context) {
+p.Task("name", "description", func(c *gosu.Context) {
     // use context to get info about c.FileEvent or c.Task
 })
 ```
@@ -97,13 +97,13 @@ To add a task with Dependencies only
 
 ```go
 // run dep1, dep2, name in sequence
-task("name", Pre{"dep1", "dep2"})
+p.Task("name", Pre{"dep1", "dep2"})
 ```
 
 To enable watching on a task, add glob patterns for the files to be watched
 
 ```go
-task("views", Watch{"./views/**/*.go.html"}, func() {
+p.Task("views", Watch{"./views/**/*.go.html"}, func() {
     // ...
 })
 ```
@@ -133,12 +133,12 @@ import (
     "github.com/acme/project"
 )
 
-func Tasks(task TaskFunc, use UseFunc) {
+func Tasks(p *Project) {
     // Use  it within this project and assign namespace "ns"
-    use("ns", project.Tasks)
+    p.Use("ns", project.Tasks)
 
     // Add as dependency, note the namespace
-    task("default", Pre{"ns:sprite"})
+    p.Task("default", Pre{"ns:sprite"})
 }
 ```
 

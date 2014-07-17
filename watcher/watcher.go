@@ -3,11 +3,11 @@ package watcher
 
 import (
 	"github.com/go-fsnotify/fsnotify"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -69,20 +69,22 @@ func (w *Watcher) eventHandle() {
 	for {
 		select {
 		case event := <-w.Watcher.Events:
-			//fmt.Printf("event %+v\n", event)
+			//log.Printf("event %+v\n", event)
 			if w.IsIgnorePath(event.Name) {
 				continue
 			}
 
 			// you can not stat a delete file...
 			if event.Op == fsnotify.Remove {
-				w.Event <- newFileEvent(event)
+				// adjust with arbitrary value because it was deleted
+				// before it got here
+				w.Event <- newFileEvent(event, time.Now().UnixNano()-10)
 				continue
 			}
 
 			fi, err := os.Stat(event.Name)
 			if os.IsNotExist(err) {
-				log.Println(event)
+				//log.Println(event)
 				continue
 			}
 
@@ -98,7 +100,7 @@ func (w *Watcher) eventHandle() {
 			if oldFI != nil && fi.ModTime().UnixNano() < (*oldFI).ModTime().UnixNano()+IgnoreThresholdRange {
 				continue
 			}
-			w.Event <- newFileEvent(event)
+			w.Event <- newFileEvent(event, fi.ModTime().UnixNano())
 
 			if err != nil {
 				//rename send two events,one old file,one new file,here ignore old one

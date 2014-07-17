@@ -10,7 +10,7 @@ import (
 	"github.com/mgutz/str"
 )
 
-// Project is local project.
+// Tasks is local project.
 func Tasks(p *Project) {
 
 	p.Task("hello", func() {
@@ -21,7 +21,7 @@ func Tasks(p *Project) {
 		fmt.Println(Hello("foobar"))
 	})
 
-	p.Task("files", Files{"**/*"}, func(c *Context) {
+	p.Task("files", Watch{"**/*"}, func(c *Context) {
 		if c.FileEvent == nil {
 			for _, f := range c.Task.WatchFiles {
 				// f.FileInfo and f.Path
@@ -34,6 +34,10 @@ func Tasks(p *Project) {
 	})
 
 	p.Task("dist", Pre{"lint", "readme"})
+
+	p.Task("install", func() {
+		util.Exec("go get github.com/golang/lint/golint")
+	})
 
 	p.Task("lint", func() {
 		util.Exec("golint .")

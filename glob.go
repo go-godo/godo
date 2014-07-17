@@ -5,6 +5,7 @@ import (
 	//"log"
 	"os"
 	gpath "path"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -246,7 +247,7 @@ func walkFiles(root string) ([]*FileAsset, error) {
 	visitor := func(path string, info os.FileInfo, err error) error {
 		if err == nil {
 			lock.Lock()
-			fileAssets = append(fileAssets, &FileAsset{FileInfo: info, Path: path})
+			fileAssets = append(fileAssets, &FileAsset{FileInfo: info, Path: filepath.ToSlash(path)})
 			lock.Unlock()
 		}
 		return nil

@@ -12,16 +12,18 @@
 //
 //      package tasks
 //
-//      import "github.com/mgutz/gosu"
+//      import (
+//			. "github.com/mgutz/gosu"
+//		)
 //
-//      func Project(p *gosu.Project) {
-//          p.Task("default", []string{"hello, "views"})
+//      func Tasks(p *Project) {
+//          p.Task("default", Pre{"hello, "views"})
 //
 //          p.Task("hello", func() {
 //              util.Exec(`bash -c "echo Hello $USER!"`)
 //          })
 //
-//          p.Task("views", gosu.Files{"**/*"}, func(c *gosu.Context) {
+//          p.Task("views", Watch{"**/*"}, func(c *Context) {
 //              if c.FileEvent == nil {
 //                  for _, f := range c.Task.WatchFiles {
 //                      // f.FileInfo and f.Path

@@ -72,7 +72,8 @@ func (task *Task) isWatchedFile(e *watcher.FileEvent) bool {
 	}
 
 	filename, err := filepath.Rel(cwd, e.Name)
-	//Debugf("task", "checking for match %s\n", filename)
+	filename = filepath.ToSlash(filename)
+	//util.Debug("task", "checking for match %s\n", filename)
 	if err != nil {
 		return false
 	}
@@ -81,12 +82,12 @@ func (task *Task) isWatchedFile(e *watcher.FileEvent) bool {
 		if info.Negate {
 			if matched {
 				matched = !info.MatchString(filename)
-				//Debugf("task", "negated match? %s %s\n", filename, matched)
+				//util.Debug("task", "negated match? %s %s\n", filename, matched)
 				continue
 			}
 		} else if info.MatchString(filename) {
 			matched = true
-			//Debugf("task", "matched %s %s\n", filename, matched)
+			//util.Debug("task", "matched %s %s\n", filename, matched)
 			continue
 		}
 	}
@@ -108,8 +109,9 @@ func (task *Task) RunWithEvent(logName string, e *watcher.FileEvent) {
 		if !task.isWatchedFile(e) {
 			return
 		}
+		//util.Debug(logName, "%+v %d\n", e, e.UnixNano)
 		if *verbose {
-			util.Debug(logName, "%s\n", e.String())
+			util.Debug(logName, "%s %d\n", e.String(), e.UnixNano)
 		}
 	}
 

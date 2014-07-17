@@ -2,19 +2,18 @@ package tasks
 
 import (
 	"fmt"
-
 	. "github.com/mgutz/gosu"
 	"github.com/mgutz/gosu/util"
 )
 
-// ImportedProject could be an imported project from someone else's library
+// ImportedTasks could be an imported project from someone else's library
 func ImportedTasks(p *Project) {
 	p.Task("sprite", func(c *Context) {
 		fmt.Printf("creating sprite image\n")
 	})
 }
 
-// Project is your local project. Define your tasks here.
+// Tasks is your local project. Define your tasks here.
 func Tasks(p *Project) {
 	// User other projects in namespace
 	p.Use("ext", ImportedTasks)

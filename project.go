@@ -177,7 +177,7 @@ func watchTask(root string, logName string, handler func(e *watcher.FileEvent)) 
 	}
 
 	// this function will block forever, Ctrl+C to quit app
-	lastHappendTime := time.Now()
+	var lastHappenedTime int64
 	firstTime := true
 	for {
 		if firstTime {
@@ -185,13 +185,16 @@ func watchTask(root string, logName string, handler func(e *watcher.FileEvent)) 
 			firstTime = false
 		}
 		event := <-watchr.Event
-		if event.Time.Before(lastHappendTime) {
+		//util.Debug("DBG", "event %+v\n", event)
+		isOlder := event.UnixNano < lastHappenedTime
+		lastHappenedTime = event.UnixNano
+
+		if isOlder {
 			continue
 		}
 		handler(event)
 		// prevent multiple restart in short time
 		time.Sleep(waitTime)
-		lastHappendTime = time.Now()
 	}
 }
 
