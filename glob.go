@@ -117,7 +117,8 @@ func Globexp(glob string) *regexp.Regexp {
 	return regexp.MustCompile(re.String())
 }
 
-// Glob returns files and dirctories that match patterns.
+// Glob returns files and dirctories that match patterns. Patterns must use
+// slashes, even Windows.
 //
 // Special chars.
 //
