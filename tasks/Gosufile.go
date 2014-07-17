@@ -11,17 +11,17 @@ import (
 )
 
 // Project is local project.
-func Tasks(task TaskFunc) {
+func Tasks(p *Project) {
 
-	task("hello", func() {
+	p.Task("hello", func() {
 		util.Exec(`bash -c "echo Hello $USER!"`)
 	})
 
-	task("hello2", func() {
+	p.Task("hello2", func() {
 		fmt.Println(Hello("foobar"))
 	})
 
-	task("files", Files{"**/*"}, func(c *Context) {
+	p.Task("files", Files{"**/*"}, func(c *Context) {
 		if c.FileEvent == nil {
 			for _, f := range c.Task.WatchFiles {
 				// f.FileInfo and f.Path
@@ -33,15 +33,15 @@ func Tasks(task TaskFunc) {
 		}
 	})
 
-	task("dist", Pre{"lint", "readme"})
+	p.Task("dist", Pre{"lint", "readme"})
 
-	task("lint", func() {
+	p.Task("lint", func() {
 		util.Exec("golint .")
 		util.Exec("gofmt -w -s .")
 		util.Exec("go vet .")
 	})
 
-	task("readme", func() {
+	p.Task("readme", func() {
 		util.Exec("godocdown -o README.md")
 		// add godoc
 		goa.Pipe(

@@ -7,12 +7,8 @@ This is a trivial example.
 To build the HTML templates into functions
 
     go get github.com/mgutz/razor
-    go run gosu.go views
-
-To build stylesheets you need Node.js and LESS
-
-    go run gosu.go styles
+    gosu  views
 
 To run everyting and watch
 
-    go run gosu.go --watch
+    gosu views --watch

@@ -22,10 +22,11 @@ type Project struct {
 }
 
 // NewProject creates am empty project ready for tasks.
-func NewProject() *Project {
+func NewProject(tasksFunc func(*Project)) *Project {
 	project := &Project{Tasks: map[string]*Task{}}
 	project.Namespace = map[string]*Project{}
 	project.Namespace[""] = project
+	project.Define(tasksFunc)
 	return project
 }
 
@@ -124,10 +125,9 @@ func (project *Project) Usage() {
 }
 
 // Use uses another project's task within a namespace.
-func (project *Project) Use(namespace string, tasksFunc interface{}) {
+func (project *Project) Use(namespace string, tasksFunc func(*Project)) {
 	namespace = strings.Trim(namespace, ":")
-	proj := NewProject()
-	proj.Define(tasksFunc)
+	proj := NewProject(tasksFunc)
 	project.Namespace[namespace] = proj
 }
 
@@ -196,16 +196,8 @@ func watchTask(root string, logName string, handler func(e *watcher.FileEvent)) 
 }
 
 // Define defines tasks
-func (project *Project) Define(tasksFunc interface{}) {
-	switch fn := tasksFunc.(type) {
-	default:
-		util.Error("ERR", "Invalid tasks function")
-		os.Exit(1)
-	case func(TaskFunc):
-		fn(project.Task)
-	case func(TaskFunc, UseFunc):
-		fn(project.Task, project.Use)
-	}
+func (project *Project) Define(fn func(*Project)) {
+	fn(project)
 }
 
 // Watch watches the Files of a task and reruns the task on a watch event. Any

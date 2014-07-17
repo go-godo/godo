@@ -11,9 +11,8 @@ var help = flag.Bool("help", false, "View this usage screen")
 var verbose = flag.Bool("verbose", false, "View more info like which file changed")
 
 // Run runs a project of tasks.
-func Run(tasksFunc interface{}) {
-	project := NewProject()
-	project.Define(tasksFunc)
+func Run(tasksFunc func(*Project)) {
+	project := NewProject(tasksFunc)
 
 	flag.Parse()
 

@@ -32,7 +32,7 @@ func Tasks(task TaskFunc) {
         util.Exec(`bash -c "echo Hello $USER!"`)
     })
 
-    task("files", Files{"**/*"}, func(c *Context) {
+    task("files", Watch{"**/*"}, func(c *Context) {
         if c.FileEvent == nil {
             for _, f := range c.Task.WatchFiles {
                 // f.FileInfo and f.Path

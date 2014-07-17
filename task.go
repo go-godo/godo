@@ -21,8 +21,8 @@ type Watch []string
 type Pre []string
 
 // TaskFunction is the signature of the function used to define a type.
-type TaskFunc func(string, ...interface{}) *Task
-type UseFunc func(string, interface{})
+// type TaskFunc func(string, ...interface{}) *Task
+// type UseFunc func(string, interface{})
 
 // A Task is an operation performed on a user's project directory.
 type Task struct {
