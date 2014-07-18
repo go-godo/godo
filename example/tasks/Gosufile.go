@@ -19,7 +19,7 @@ func Tasks(p *Project) {
 	p.Use("ext", ImportedTasks)
 
 	//p.Task("default", "Default task", []string{"views", "ext:sprite"})
-	p.Task("default", "Default task", Pre{"views", "ext:sprite"})
+	p.Task("default", Pre{"views", "ext:sprite"})
 
 	p.Task("views", Watch{"views/**/*.go.html"}, func(c *Context) {
 		util.Exec("razor views views")

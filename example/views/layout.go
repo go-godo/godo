@@ -9,9 +9,9 @@ import (
 // Layout is generated
 func Layout(title string, body razor.SafeBuffer) razor.SafeBuffer {
 	_buffer := razor.NewSafeBuffer()
-	_buffer.WriteString("\n\n\n\n<html>\n\n  <head></head>\n\n  <body>\n\n    ")
+	_buffer.WriteString("\n\n<html>\n  <head></head>\n  <body>\n    ")
 	_buffer.WriteSafe(body)
-	_buffer.WriteString("\n\n  </body>\n\n</html>")
+	_buffer.WriteString("\n  </body>\n</html>")
 
 	return _buffer
 }

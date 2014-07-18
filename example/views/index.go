@@ -10,7 +10,7 @@ import (
 func Index(name string) razor.SafeBuffer {
 	_buffer := razor.NewSafeBuffer()
 	title := "Razor View Engine"
-	_buffer.WriteString("\n\n\n\n<h1>Hello ")
+	_buffer.WriteString("\n\n<h1>Hello ")
 	_buffer.WriteSafe(name)
 	_buffer.WriteString("!<h1>")
 
