@@ -95,10 +95,10 @@ func TestCalculateWatchPaths(t *testing.T) {
 		t.Error("Expected exact elements")
 	}
 	if paths[0] != "example/views/" {
-		t.Error("Expected example/views/ got %s", paths[0])
+		t.Error("Expected example/views/ got", paths[0])
 	}
 	if paths[1] != "example.html" {
-		t.Error("Expected exact file paths got %s", paths[1])
+		t.Error("Expected exact file paths got", paths[1])
 	}
 
 	// should only watch current directory
@@ -111,6 +111,6 @@ func TestCalculateWatchPaths(t *testing.T) {
 		t.Error("Expected exact elements")
 	}
 	if paths[0] != "." {
-		t.Error("Expected . got %s", paths[0])
+		t.Error("Expected . got", paths[0])
 	}
 }

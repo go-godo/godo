@@ -107,7 +107,3 @@ func Template(src string, dest string, data map[string]interface{}) {
 		Panic("template", "Could not execute template %s\n", src)
 	}
 }
-
-func RestartError(command string, options ...map[string]interface{}) error {
-	return nil
-}

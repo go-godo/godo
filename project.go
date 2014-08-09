@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
+	//"time"
 
 	"github.com/mgutz/gosu/util"
 	"github.com/mgutz/gosu/watcher"
@@ -165,7 +165,7 @@ func watchTask(root string, logName string, handler func(e *watcher.FileEvent)) 
 	if err != nil {
 		util.Panic("project", "%v\n", err)
 	}
-	waitTime := time.Duration(0.1 * float64(time.Second))
+	//waitTime := time.Duration(0.1 * float64(time.Second))
 	watchr.WatchRecursive(root)
 	watchr.ErrorHandler = func(err error) {
 		util.Error("project", "%v\n", err)
@@ -189,7 +189,7 @@ func watchTask(root string, logName string, handler func(e *watcher.FileEvent)) 
 		}
 		handler(event)
 		// prevent multiple restart in short time
-		time.Sleep(waitTime)
+		//time.Sleep(waitTime)
 	}
 }
 

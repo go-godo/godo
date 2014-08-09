@@ -2,18 +2,21 @@
 package watcher
 
 import (
+	//"fmt"
 	"gopkg.in/fsnotify.v1"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/mgutz/str"
 )
 
 const (
 	// IgnoreThresholdRange is the amount of time in ns to ignore when
 	// receiving watch events for the same file
-	IgnoreThresholdRange = 75
+	IgnoreThresholdRange = 50 * 1000000 // convert to ms
 )
 
 // Watcher is a wrapper around which adds some additional features:
@@ -69,7 +72,7 @@ func (w *Watcher) eventHandle() {
 	for {
 		select {
 		case event := <-w.Watcher.Events:
-			//log.Printf("event %+v\n", event)
+			//fmt.Printf("event %+v\n", event)
 			if w.IsIgnorePath(event.Name) {
 				continue
 			}
@@ -84,7 +87,7 @@ func (w *Watcher) eventHandle() {
 
 			fi, err := os.Stat(event.Name)
 			if os.IsNotExist(err) {
-				//log.Println(event)
+				//fmt.Println("not exists", event)
 				continue
 			}
 
@@ -97,9 +100,12 @@ func (w *Watcher) eventHandle() {
 			oldFI := cache[event.Name]
 			cache[event.Name] = &fi
 			mu.Unlock()
+
 			if oldFI != nil && fi.ModTime().UnixNano() < (*oldFI).ModTime().UnixNano()+IgnoreThresholdRange {
 				continue
 			}
+
+			//fmt.Println("sending fi", fi.ModTime().UnixNano()/1000000, event.Name)
 			w.Event <- newFileEvent(event, fi.ModTime().UnixNano())
 
 			if err != nil {
@@ -176,7 +182,7 @@ func (w *Watcher) getSubFolders(path string) (paths []string, err error) {
 // DefaultIsIgnorePath checks whether a path is ignored. Currently defaults
 // to hidden files on *nix systems, ie they start with a ".".
 func DefaultIsIgnorePath(path string) bool {
-	return isDotFile(path)
+	return isDotFile(path) || isVimFile(path)
 }
 
 func isDotFile(path string) bool {
@@ -188,4 +194,9 @@ func isDotFile(path string) bool {
 		return true
 	}
 	return false
+}
+
+func isVimFile(path string) bool {
+	base := filepath.Base(path)
+	return str.IsNumeric(base)
 }

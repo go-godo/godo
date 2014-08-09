@@ -15,6 +15,8 @@ func Tasks(p *Project) {
 
 	p.Task("install", func() {
 		util.Exec("go get github.com/golang/lint/golint")
+		util.Exec("go get github.com/mgutz/goa")
+
 	})
 
 	p.Task("lint", func() {

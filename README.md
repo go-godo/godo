@@ -12,6 +12,7 @@ other tasks imported.
 
 To install
 
+    go get -u github.com/mgutz/gosu
     go get -u github.com/mgutz/gosu/cmd/gosu
 
 As an example, create a file 'tasks/Gosufile.go'
