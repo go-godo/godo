@@ -11,14 +11,23 @@ import (
 )
 
 // ExecError is a simple way to execute a CLI utility.
-func ExecError(command string, args ...string) error {
+func ExecError(command string, options ...map[string]interface{}) error {
 	argv := str.ToArgv(command)
 	executable := argv[0]
 	argv = argv[1:]
-	for _, arg := range args {
-		argv = append(argv, arg)
-	}
+	// for _, arg := range args {
+	// 	argv = append(argv, arg)
+	// }
 	cmd := exec.Command(executable, argv...)
+	if len(options) == 1 {
+		opts := options[0]
+		if opts["Dir"] != nil {
+			cmd.Dir = opts["Dir"].(string)
+		}
+		if opts["Env"] != nil {
+			cmd.Env = opts["Env"].([]string)
+		}
+	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
@@ -26,8 +35,8 @@ func ExecError(command string, args ...string) error {
 
 // Exec is simple way to execute a CLI utility. `command` is parsed
 // for arguments. args is optional and unparsed.
-func Exec(command string, args ...string) {
-	err := ExecError(command, args...)
+func Exec(command string, options ...map[string]interface{}) {
+	err := ExecError(command, options...)
 	if err != nil {
 		Error("ERR", "%s\n%+v", command, err)
 	}

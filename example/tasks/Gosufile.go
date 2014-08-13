@@ -29,4 +29,16 @@ func Tasks(p *Project) {
 		fmt.Printf("Restarting app")
 		// (re)start your app
 	})
+
+	p.Task("files", Watch{"**/*"}, func(c *Context) {
+		if c.FileEvent == nil {
+			for _, f := range c.Task.WatchFiles {
+				// f.FileInfo and f.Path
+				fmt.Printf("File: %s\n", f.Path)
+			}
+		} else {
+			// change event when watching
+			fmt.Printf("%v\n", c.FileEvent)
+		}
+	})
 }

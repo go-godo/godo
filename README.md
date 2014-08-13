@@ -1,152 +1,271 @@
 # gosu
 
-*gosu* is a build tool for Go in the spirit of Rake, Gulp, Projmate ...
-*gosu* supports watching, globbing, tasks and modular projects.
+[godoc](https://godoc.org/github.com/mgutz/gosu)
 
-_Asset.pipeline is at [goa](http://github.com/mgutz/goa)_
+    import "github.com/mgutz/gosu"
 
-## Install
+Package gosu is a project build toolkit for Go in the spirit of Rake, Grunt and
+others. Gosu supports watching, file globs, tasks and modular projects.
 
-```sh
-go get github.com/mgutz/gosu/gosu
-```
+Gosu requires a tasks configuration function, in which task are registered and
+other tasks imported.
 
-## Example
+To install
 
-Create a file `tasks/Gosufile.go`. Go is strict about package main and having multiple
-packages in the same dir. Learn to compromise and Go loves you back.
+    go get -u github.com/mgutz/gosu/gosu
 
-```go
-package tasks
+As an example, create a file 'tasks/Gosufile.go'
 
-import (
-    "fmt"
-    . "github.com/mgutz/gosu"
-    "github.com/mgutz/gosu/util"
-)
+    package tasks
 
-func Tasks(p *Project) {
-    p.Task("default", Pre{"files", "hello"})
+    import (
+        . "github.com/mgutz/gosu"
+    )
 
-    p.Task("hello", func() {
-        util.Exec(`bash -c "echo Hello $USER!"`)
-    })
+    func Tasks(p *Project) {
+        p.Task("default", Pre{"hello, "views"})
 
-    p.Task("files", Watch{"**/*"}, func(c *Context) {
-        if c.FileEvent == nil {
-            for _, f := range c.Task.WatchFiles {
-                // f.FileInfo and f.Path
-                fmt.Printf("File: %s\n", f.Path)
+        p.Task("hello", func() {
+            util.Exec(`bash -c "echo Hello $USER!"`)
+        })
+
+        p.Task("views", Watch{"**/*.go.html"}, func(c *Context) {
+            if c.FileEvent == nil {
+                for _, f := range c.Task.WatchFiles {
+                    // f.FileInfo and f.Path
+                    fmt.Printf("File: %s\n", f.Path)
+                }
+            } else {
+                // change event when watching
+                fmt.Printf("%v\n", c.FileEvent)
             }
-        } else {
-            // change event when watching
-            fmt.Printf("%v\n", c.FileEvent)
-        }
-    })
-}
-```
-
-To run default task: `gosu`
-
-To run a single task:  `gosu files`
-
-To run and watch a task: `gosu files --watch`
-
-To see all tasks: `gosu --help`
-
-To build your own utility
-
-1.  Project must be inside `package main`
-2.  Add this code
-
-    fun main() {
-        gosu.Run(Tasks)
+        })
     }
 
+To run "views"
 
-## Syntax
+    gosu views
 
-### Adding tasks
+To run the "default" task which runs the dependencies "hello", "views"
 
-To add a default task, which runs when a task name is not provided on the command line.
-The best practice is to use the "default" task to define the most frequently used
-dependencies. Avoid defining a handler for "default"
+    gosu
 
-```go
-p.Task("default", Pre{"clean", "stylesheets", "views"})
-```
+Note the "views" task specifies "**/*.go.html", which is a glob pattern to watch
+any file with .go.html extension. To rerun "views" whenever any file changes,
+run gosu in watch mode
 
-To add a task with description and Handler
+    gosu --watch
 
-```go
-// description is displayed in the Tasks help screen
-p.Task("name", "description", func() {
-    // ...
-})
-```
+## Usage
 
-To add a task with description and ContextHandler
+#### func  Glob
 
 ```go
-p.Task("name", "description", func(c *gosu.Context) {
-    // use context to get info about c.FileEvent or c.Task
-})
+func Glob(patterns []string) ([]*FileAsset, []*RegexpInfo, error)
 ```
+Glob returns files and dirctories that match patterns. Patterns must use
+slashes, even Windows.
 
-To add a task with Dependencies only
+Special chars.
+
+    /**/   - match zero or more directories
+    {a,b}  - match a or b, no spaces
+    *      - match any non-separator char
+    ?      - match a single non-separator char
+    **/    - match any directory, start of pattern only
+    /**    - match any this directory, end of pattern only
+    !      - removes files from resultset, start of pattern only
+
+#### func  Globexp
 
 ```go
-// run dep1, dep2, name in sequence
-p.Task("name", Pre{"dep1", "dep2"})
+func Globexp(glob string) *regexp.Regexp
 ```
+Globexp builds a regular express from from extended glob pattern and then
+returns a Regexp object from the pattern.
 
-To enable watching on a task, add glob patterns for the files to be watched
+#### func  Run
 
 ```go
-p.Task("views", Watch{"./views/**/*.go.html"}, func() {
-    // ...
-})
+func Run(tasksFunc func(*Project))
 ```
+Run runs a project of tasks.
 
-All tasks MUST have a Handler, ContextHandler or Dependencies.
-
-### Glob Patterns
-
-```
-/**/   - match zero or more directories
-{a,b}  - match a or b, no spaces
-*      - match any non-separator char
-?      - match a single non-separator char
-**/    - match any directory, start of pattern only
-/**    - match any this directory, end of pattern only
-!      - removes files from resultset, start of pattern only
-```
-
-### Import Project
-
-A large project can be broken into multiple projects or projects can be
-imported from other packages. Imported projects MUST be namespaced to avoid
-conflicts with tasks in your project.
+#### type Context
 
 ```go
-import (
-    "github.com/acme/project"
-)
+type Context struct {
+	// Task is the currently running task.
+	Task *Task
 
-func Tasks(p *Project) {
-    // Use  it within this project and assign namespace "ns"
-    p.Use("ns", project.Tasks)
-
-    // Add as dependency, note the namespace
-    p.Task("default", Pre{"ns:sprite"})
+	// FileEvent is an event from the watcher with change details.
+	FileEvent *watcher.FileEvent
 }
 ```
 
-## FAQ
+Context is the data passed to a task.
 
-If you are receiving weird events (Mac Users) please read [fsnotify](https://github.com/howeyc/fsnotify) FAQ
+#### func (*Context) AnyFile
 
-## LICENSE
+```go
+func (context *Context) AnyFile() []string
+```
+AnyFile returns either a non-DELETe FileEvent file or the WatchGlob patterns
+which can be used by goa.Load()
 
-The MIT License
+#### type FileAsset
 
+```go
+type FileAsset struct {
+	os.FileInfo
+	// Path to asset
+	Path string
+}
+```
+
+FileAsset contains file information and path from globbing.
+
+#### type Files
+
+```go
+type Files []string
+```
+
+Files type is use to discern between files and dependencies when adding a task
+to the project.
+
+#### type M
+
+```go
+type M map[string]interface{}
+```
+
+M is generic string to interface alias
+
+#### type Pre
+
+```go
+type Pre []string
+```
+
+Pre are dependencies which are run before a task.
+
+#### type Project
+
+```go
+type Project struct {
+	Tasks     map[string]*Task
+	Namespace map[string]*Project
+}
+```
+
+Project is a container for tasks.
+
+#### func  NewProject
+
+```go
+func NewProject(tasksFunc func(*Project)) *Project
+```
+NewProject creates am empty project ready for tasks.
+
+#### func (*Project) Define
+
+```go
+func (project *Project) Define(fn func(*Project))
+```
+Define defines tasks
+
+#### func (*Project) Run
+
+```go
+func (project *Project) Run(name string)
+```
+Run runs a task by name.
+
+#### func (*Project) Task
+
+```go
+func (project *Project) Task(name string, args ...interface{}) *Task
+```
+Task adds a task to the project.
+
+#### func (*Project) Usage
+
+```go
+func (project *Project) Usage()
+```
+Usage prints usage about the app and tasks.
+
+#### func (*Project) Use
+
+```go
+func (project *Project) Use(namespace string, tasksFunc func(*Project))
+```
+Use uses another project's task within a namespace.
+
+#### func (*Project) Watch
+
+```go
+func (project *Project) Watch(names []string)
+```
+Watch watches the Files of a task and reruns the task on a watch event. Any
+direct dependency is also watched.
+
+#### type RegexpInfo
+
+```go
+type RegexpInfo struct {
+	*regexp.Regexp
+	Negate bool
+}
+```
+
+RegexpInfo contains additional info about the Regexp created by a glob pattern.
+
+#### type Task
+
+```go
+type Task struct {
+	Name           string
+	Description    string
+	Dependencies   []string
+	Handler        func()
+	ContextHandler func(*Context)
+
+	// Watches are the files are watched. On change the task is rerun. For example `**/*.less`
+	// Usually Watches and Sources are the same.
+	WatchFiles   []*FileAsset
+	WatchGlobs   []string
+	WatchRegexps []*RegexpInfo
+
+	// Complete indicates whether this task has already ran. This flag is
+	// ignored in watch mode.
+	Complete bool
+}
+```
+
+A Task is an operation performed on a user's project directory.
+
+#### func (*Task) Run
+
+```go
+func (task *Task) Run()
+```
+Run runs all the dependencies of this task and when they have completed, runs
+this task.
+
+#### func (*Task) RunWithEvent
+
+```go
+func (task *Task) RunWithEvent(logName string, e *watcher.FileEvent)
+```
+RunWithEvent runs this task when triggered from a watch. *e* FileEvent contains
+information about the file/directory which changed in watch mode.
+
+#### type Watch
+
+```go
+type Watch []string
+```
+
+Watch type defines the glob patterns to use for watching.

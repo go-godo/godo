@@ -15,6 +15,9 @@ import (
 	"github.com/mgutz/gosu/watcher"
 )
 
+// M is generic string to interface alias
+type M map[string]interface{}
+
 // Project is a container for tasks.
 type Project struct {
 	Tasks     map[string]*Task

@@ -1,8 +1,6 @@
 package tasks
 
 import (
-	"fmt"
-
 	"github.com/mgutz/goa"
 	f "github.com/mgutz/goa/filter"
 	. "github.com/mgutz/gosu"
@@ -12,26 +10,6 @@ import (
 
 // Tasks is local project.
 func Tasks(p *Project) {
-
-	p.Task("hello", func() {
-		util.Exec(`bash -c "echo Hello $USER!"`)
-	})
-
-	p.Task("hello2", func() {
-		fmt.Println(Hello("foobar"))
-	})
-
-	p.Task("files", Watch{"**/*"}, func(c *Context) {
-		if c.FileEvent == nil {
-			for _, f := range c.Task.WatchFiles {
-				// f.FileInfo and f.Path
-				fmt.Printf("File: %s\n", f.Path)
-			}
-		} else {
-			// change event when watching
-			fmt.Printf("%v\n", c.FileEvent)
-		}
-	})
 
 	p.Task("dist", Pre{"lint", "readme"})
 
