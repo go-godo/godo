@@ -39,3 +39,10 @@ func Run(tasksFunc func(*Project)) {
 		project.Watch(flag.Args())
 	}
 }
+
+// MustNotError checks if error is not nil. If it is not nil it will panic.
+func MustNotError(err error) {
+	if err != nil {
+		panic(err)
+	}
+}

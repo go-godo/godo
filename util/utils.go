@@ -2,10 +2,12 @@ package util
 
 import (
 	"errors"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"github.com/mgutz/str"
 )
@@ -80,4 +82,28 @@ func PackageName(sourceFile string) (string, error) {
 		return filepath.Dir(rel), nil
 	}
 	return "", errors.New("sourceFile not reachable from GOPATH")
+}
+
+// Template reads a go template and writes it to dist given data.
+func Template(src string, dest string, data map[string]interface{}) {
+	content, err := ioutil.ReadFile(src)
+	if err != nil {
+		Panic("template", "Could not read file %s\n", src)
+	}
+
+	tpl := template.New("vagrantFile")
+	tpl, err = tpl.Parse(string(content))
+	if err != nil {
+		Panic("template", "Could not parse template %s\n", src)
+	}
+
+	f, err := os.Create(dest)
+	if err != nil {
+		Panic("template", "Could not create file for writing %s\n", dest)
+	}
+	defer f.Close()
+	err = tpl.Execute(f, data)
+	if err != nil {
+		Panic("template", "Could not execute template %s\n", src)
+	}
 }
