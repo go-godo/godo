@@ -11,7 +11,7 @@ import (
 // Tasks is local project.
 func Tasks(p *Project) {
 
-	p.Task("dist", Pre{"lint", "readme"})
+	p.Task("dist", Pre{"lint"})
 
 	p.Task("install", func() {
 		util.Exec("go get github.com/golang/lint/golint")
