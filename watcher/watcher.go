@@ -2,7 +2,7 @@
 package watcher
 
 import (
-	"gopkg.in/fsnotify.v0"
+	"gopkg.in/fsnotify.v1"
 	"os"
 	"path/filepath"
 	"strings"

@@ -2,7 +2,7 @@ package gosu
 
 import (
 	"github.com/mgutz/gosu/watcher"
-	"gopkg.in/fsnotify.v0"
+	"gopkg.in/fsnotify.v1"
 )
 
 // Context is the data passed to a task.

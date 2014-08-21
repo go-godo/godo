@@ -1,7 +1,7 @@
 package watcher
 
 import (
-	"gopkg.in/fsnotify.v0"
+	"gopkg.in/fsnotify.v1"
 	//"log"
 )
 
