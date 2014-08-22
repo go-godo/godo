@@ -1,7 +1,7 @@
 package gosu
 
 import (
-	"log"
+	//"log"
 	"regexp"
 	"strings"
 	"testing"

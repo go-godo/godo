@@ -198,6 +198,17 @@ func (project *Project) Define(fn func(*Project)) {
 	fn(project)
 }
 
+func calculateWatchPaths(patterns []string) []string {
+	var paths []string
+	for _, glob := range patterns {
+		p := str.Between(glob, "", "*")
+		if p != "" {
+			paths = append(paths, p)
+		}
+	}
+	return paths
+}
+
 // Watch watches the Files of a task and reruns the task on a watch event. Any
 // direct dependency is also watched.
 func (project *Project) Watch(names []string) {
@@ -210,18 +221,15 @@ func (project *Project) Watch(names []string) {
 	}
 
 	taskClosure := func(project *Project, task *Task, taskname string, logName string) func() {
-		var paths []string
-		for _, glob := range task.WatchGlobs {
-			p := str.Between(glob, "", "*")
-			paths = append(paths, p)
-		}
+		paths := calculateWatchPaths(task.WatchGlobs)
 		return func() {
+			if len(paths) == 0 {
+				return
+			}
 			for _, pth := range paths {
-				if pth != "" {
-					watchTask(pth, logName, func(e *watcher.FileEvent) {
-						project.run(taskname, taskname, e)
-					})
-				}
+				watchTask(pth, logName, func(e *watcher.FileEvent) {
+					project.run(taskname, taskname, e)
+				})
 			}
 		}
 	}

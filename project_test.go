@@ -83,3 +83,16 @@ func TestShouldExpandGlobs(t *testing.T) {
 		t.Error("foo should have 5 txt files, one is hidden")
 	}
 }
+
+func TestCalculateWatchPaths(t *testing.T) {
+	paths := []string{
+		"example/views/**/*.html",
+	}
+	paths = calculateWatchPaths(paths)
+	if len(paths) != 1 {
+		t.Error("Expected only 1 path")
+	}
+	if paths[0] != "example/views/" {
+		t.Error("Expected example/views/ got %s", paths[0])
+	}
+}
