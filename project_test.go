@@ -85,14 +85,32 @@ func TestShouldExpandGlobs(t *testing.T) {
 }
 
 func TestCalculateWatchPaths(t *testing.T) {
+	// test wildcards
 	paths := []string{
-		"example/views/**/*.html",
+		"example/views/**/*.go.html",
+		"example.html",
 	}
 	paths = calculateWatchPaths(paths)
-	if len(paths) != 1 {
-		t.Error("Expected only 1 path")
+	if len(paths) != 2 {
+		t.Error("Expected exact elements")
 	}
 	if paths[0] != "example/views/" {
 		t.Error("Expected example/views/ got %s", paths[0])
+	}
+	if paths[1] != "example.html" {
+		t.Error("Expected exact file paths got %s", paths[1])
+	}
+
+	// should only watch current directory
+	paths = []string{
+		"**/*.go.html",
+		"example.html",
+	}
+	paths = calculateWatchPaths(paths)
+	if len(paths) != 1 {
+		t.Error("Expected exact elements")
+	}
+	if paths[0] != "." {
+		t.Error("Expected . got %s", paths[0])
 	}
 }

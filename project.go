@@ -199,14 +199,27 @@ func (project *Project) Define(fn func(*Project)) {
 }
 
 func calculateWatchPaths(patterns []string) []string {
-	var paths []string
+	paths := map[string]bool{}
 	for _, glob := range patterns {
-		p := str.Between(glob, "", "*")
-		if p != "" {
-			paths = append(paths, p)
+		if glob == "" {
+			continue
 		}
+		pth := glob
+		if strings.Contains(glob, "*") {
+			pth = str.Between(glob, "", "*")
+			if pth == "" {
+				// this means watch current directy, no need to watch anything else
+				return []string{"."}
+			}
+		}
+		paths[pth] = true
 	}
-	return paths
+
+	var keys []string
+	for key := range paths {
+		keys = append(keys, key)
+	}
+	return keys
 }
 
 // Watch watches the Files of a task and reruns the task on a watch event. Any
