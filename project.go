@@ -13,6 +13,7 @@ import (
 
 	"github.com/mgutz/gosu/util"
 	"github.com/mgutz/gosu/watcher"
+	"github.com/mgutz/str"
 )
 
 // M is generic string to interface alias
@@ -158,15 +159,6 @@ func (project *Project) Task(name string, args ...interface{}) *Task {
 	return task
 }
 
-func shortestDir(files []*FileAsset) string {
-	dirs := []string{}
-	for _, fa := range files {
-		dirs = append(dirs, fa.Path)
-	}
-	sort.Strings(dirs)
-	return path.Dir(dirs[0])
-}
-
 func watchTask(root string, logName string, handler func(e *watcher.FileEvent)) {
 	bufferSize := 2048
 	watchr, err := watcher.NewWatcher(bufferSize)
@@ -218,11 +210,19 @@ func (project *Project) Watch(names []string) {
 	}
 
 	taskClosure := func(project *Project, task *Task, taskname string, logName string) func() {
-		root := shortestDir(task.WatchFiles)
+		var paths []string
+		for _, glob := range task.WatchGlobs {
+			p := str.Between(glob, "", "*")
+			paths = append(paths, p)
+		}
 		return func() {
-			watchTask(root, logName, func(e *watcher.FileEvent) {
-				project.run(taskname, taskname, e)
-			})
+			for _, pth := range paths {
+				if pth != "" {
+					watchTask(pth, logName, func(e *watcher.FileEvent) {
+						project.run(taskname, taskname, e)
+					})
+				}
+			}
 		}
 	}
 

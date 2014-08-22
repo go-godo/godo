@@ -1,7 +1,7 @@
 package gosu
 
 import (
-	//"log"
+	"log"
 	"regexp"
 	"strings"
 	"testing"
@@ -69,6 +69,14 @@ func TestMatching(t *testing.T) {
 	if !re.MatchString("public/{{VERSION}}/123/.4-5/a b/main-diagram.uml") {
 		t.Error("should handle special chars")
 	}
+
+	re = Globexp("example/views/**/*.go.html")
+	if !re.MatchString("example/views/admin/layout.go.html") {
+		t.Error("should handle multiple subdirs admin")
+	}
+	if !re.MatchString("example/views/front/indexl.go.html") {
+		t.Error("should handle multiple subdirs admin")
+	}
 }
 
 func TestGlob(t *testing.T) {
@@ -92,5 +100,12 @@ func TestGlob(t *testing.T) {
 		if strings.HasSuffix(file.Path, "sub1.txt") {
 			t.Error("should have excluded a negated pattern")
 		}
+	}
+}
+
+func TestPatternRoot(t *testing.T) {
+	s := patternRoot("example/views/**/*.go.html")
+	if s != "example/views" {
+		t.Error("did not calculate root dir from pattern")
 	}
 }
