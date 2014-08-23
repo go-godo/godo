@@ -19,6 +19,7 @@ type Watch []string
 // Pre are dependencies which are run before a task.
 type Pre []string
 
+// Debounce is the number of milliseconds to debounce a task when watching.
 type Debounce int64
 
 // TaskFunction is the signature of the function used to define a type.

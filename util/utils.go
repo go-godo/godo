@@ -16,7 +16,7 @@ import (
 	"github.com/mgutz/str"
 )
 
-// ExecError is a simple way to execute a CLI utility.
+// RunError is a simple way to execute a CLI utility.
 func RunError(command string, options ...map[string]interface{}) error {
 	argv := str.ToArgv(command)
 	executable := argv[0]
@@ -41,7 +41,7 @@ func RunError(command string, options ...map[string]interface{}) error {
 	return cmd.Run()
 }
 
-// Exec is simple way to execute a CLI utility. `command` is parsed
+// Run is simple way to execute a CLI utility. `command` is parsed
 // for arguments. args is optional and unparsed.
 func Run(command string, options ...map[string]interface{}) {
 	err := RunError(command, options...)
@@ -114,6 +114,8 @@ func Template(src string, dest string, data map[string]interface{}) {
 	}
 }
 
+// StartError is a simple way to start a process. If start is called with the same
+// command it will kill the previous process.
 func StartError(command string, options ...map[string]interface{}) error {
 	argv := str.ToArgv(command)
 	executable := argv[0]
@@ -145,7 +147,7 @@ func StartError(command string, options ...map[string]interface{}) error {
 				Error("Start", "Could not read pidfile %s\n", pidfile)
 				return
 			}
-			pid := ToInt(string(pidb))
+			pid := toInt(string(pidb))
 			if pid != 0 {
 				existingProcess, err := os.FindProcess(pid)
 				if err != nil {
@@ -178,8 +180,8 @@ func StartError(command string, options ...map[string]interface{}) error {
 	return ioutil.WriteFile(pidfile, []byte(strconv.Itoa(cmd.Process.Pid)), 0644)
 }
 
-// Start is simple way to execute a CLI utility. `command` is parsed
-// for arguments. args is optional and unparsed.
+// Start is a simple way to start a process. If start is called with the same
+// command it will kill the previous process.
 func Start(command string, options ...map[string]interface{}) {
 	err := StartError(command, options...)
 	if err != nil {
@@ -187,7 +189,7 @@ func Start(command string, options ...map[string]interface{}) {
 	}
 }
 
-func ToInt(s string) int {
+func toInt(s string) int {
 	result, err := strconv.Atoi(s)
 	if err != nil {
 		return 0
