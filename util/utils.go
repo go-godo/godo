@@ -1,11 +1,15 @@
 package util
 
 import (
+	"crypto/sha1"
 	"errors"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -13,7 +17,7 @@ import (
 )
 
 // ExecError is a simple way to execute a CLI utility.
-func ExecError(command string, options ...map[string]interface{}) error {
+func RunError(command string, options ...map[string]interface{}) error {
 	argv := str.ToArgv(command)
 	executable := argv[0]
 	argv = argv[1:]
@@ -21,6 +25,7 @@ func ExecError(command string, options ...map[string]interface{}) error {
 	// 	argv = append(argv, arg)
 	// }
 	cmd := exec.Command(executable, argv...)
+
 	if len(options) == 1 {
 		opts := options[0]
 		if opts["Dir"] != nil {
@@ -32,13 +37,14 @@ func ExecError(command string, options ...map[string]interface{}) error {
 	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
 	return cmd.Run()
 }
 
 // Exec is simple way to execute a CLI utility. `command` is parsed
 // for arguments. args is optional and unparsed.
-func Exec(command string, options ...map[string]interface{}) {
-	err := ExecError(command, options...)
+func Run(command string, options ...map[string]interface{}) {
+	err := RunError(command, options...)
 	if err != nil {
 		Error("ERR", "%s\n%+v", command, err)
 	}
@@ -106,4 +112,74 @@ func Template(src string, dest string, data map[string]interface{}) {
 	if err != nil {
 		Panic("template", "Could not execute template %s\n", src)
 	}
+}
+
+func StartError(command string, options ...map[string]interface{}) error {
+	argv := str.ToArgv(command)
+	executable := argv[0]
+	argv = argv[1:]
+	// for _, arg := range args {
+	// 	argv = append(argv, arg)
+	// }
+	cmd := exec.Command(executable, argv...)
+	if len(options) == 1 {
+		opts := options[0]
+		if opts["Dir"] != nil {
+			cmd.Dir = opts["Dir"].(string)
+		}
+		if opts["Env"] != nil {
+			cmd.Env = opts["Env"].([]string)
+		}
+	}
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	h := sha1.New()
+	io.WriteString(h, command)
+	pidfile := filepath.Join(os.TempDir(), fmt.Sprintf("%x.pid", h.Sum(nil)))
+	Debug("Util", "pid file %s\n", pidfile)
+
+	if _, err := os.Stat(pidfile); !os.IsNotExist(err) {
+		pidb, err := ioutil.ReadFile(pidfile)
+		if err != nil {
+			Error("Start", "Could not read pidfile %s\n", pidfile)
+		}
+		pid := ToInt(string(pidb))
+		if pid != 0 {
+			existingProcess, err := os.FindProcess(pid)
+			if err != nil {
+				Error("Start", "Could not find process %d\n", pid)
+			}
+			if existingProcess != nil {
+				err := existingProcess.Kill()
+				if err != nil {
+					Error("Start", "Could not kill existing process%d\n", pid)
+				}
+			}
+		}
+	}
+
+	err := cmd.Start()
+	if err != nil {
+		Error("Start", "Could not start process %s\n", command)
+		return err
+	}
+	return ioutil.WriteFile(pidfile, []byte(strconv.Itoa(cmd.Process.Pid)), 0644)
+}
+
+// Start is simple way to execute a CLI utility. `command` is parsed
+// for arguments. args is optional and unparsed.
+func Start(command string, options ...map[string]interface{}) {
+	err := StartError(command, options...)
+	if err != nil {
+		Error("ERR", "%s\n%+v", command, err)
+	}
+}
+
+func ToInt(s string) int {
+	result, err := strconv.Atoi(s)
+	if err != nil {
+		return 0
+	}
+	return result
 }
