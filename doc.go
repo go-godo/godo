@@ -38,6 +38,7 @@
 //          })
 //
 //          p.Task("server", Watch{"**/*.go}, Pre{"views"}, Debounce(3000), func() {
+//              // DO NOT use "go run", it creates a child process that is difficult to kill
 //              utils.Run("go install")
 //              utils.Start("example --port=8080")
 //          })
