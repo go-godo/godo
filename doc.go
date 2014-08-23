@@ -15,6 +15,7 @@
 //
 //      import (
 //          . "github.com/mgutz/gosu"
+//          "github.com/mgutz/gosu/util"
 //      )
 //
 //      func Tasks(p *Project) {
@@ -34,6 +35,11 @@
 //                  // change event when watching
 //                  fmt.Printf("%v\n", c.FileEvent)
 //              }
+//          })
+//
+//          p.Task("server", Watch{"**/*.go}, Pre{"views"}, Debounce(3000), func() {
+//              utils.Run("go install")
+//              utils.Start("example --port=8080")
 //          })
 //      }
 //

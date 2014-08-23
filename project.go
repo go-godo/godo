@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	//"time"
+	"time"
 
 	"github.com/mgutz/gosu/util"
 	"github.com/mgutz/gosu/watcher"
@@ -21,13 +21,15 @@ type M map[string]interface{}
 
 // Project is a container for tasks.
 type Project struct {
+	sync.Mutex
 	Tasks     map[string]*Task
 	Namespace map[string]*Project
+	lastRun   map[string]int64
 }
 
 // NewProject creates am empty project ready for tasks.
 func NewProject(tasksFunc func(*Project)) *Project {
-	project := &Project{Tasks: map[string]*Task{}}
+	project := &Project{Tasks: map[string]*Task{}, lastRun: make(map[string]int64)}
 	project.Namespace = map[string]*Project{}
 	project.Namespace[""] = project
 	project.Define(tasksFunc)
@@ -61,6 +63,20 @@ func (project *Project) namespaceTaskName(name string) (namespace string, taskNa
 	return
 }
 
+func (project *Project) debounce(task *Task) bool {
+	debounceMs := task.Debounce
+	if debounceMs == 0 {
+		debounceMs = *debounceMilliseconds
+	}
+
+	now := time.Now().UnixNano()
+	project.Lock()
+	oldRun := project.lastRun[task.Name]
+	project.lastRun[task.Name] = now
+	project.Unlock()
+	return now < oldRun+debounceMs*1000000
+}
+
 // Run runs a task by name.
 func (project *Project) Run(name string) {
 	project.run(name, name, nil)
@@ -74,6 +90,13 @@ func (project *Project) runWithEvent(name string, logName string, e *watcher.Fil
 // run runs the project, executing any tasks named on the command line.
 func (project *Project) run(name string, logName string, e *watcher.FileEvent) error {
 	_, task := project.mustTask(name)
+	if project.debounce(task) {
+		return nil
+	}
+
+	if e != nil && !task.isWatchedFile(e) {
+		return nil
+	}
 
 	// Run each task including their dependencies.
 	for _, depName := range task.Dependencies {
@@ -82,7 +105,7 @@ func (project *Project) run(name string, logName string, e *watcher.FileEvent) e
 		if proj == nil {
 			fmt.Errorf("Project was not loaded for \"%s\" task", name)
 		}
-		project.Namespace[namespace].runWithEvent(taskName, name+">"+depName, e)
+		project.Namespace[namespace].runWithEvent(taskName, name+">"+depName, nil)
 	}
 	task.RunWithEvent(logName, e)
 	return nil
@@ -147,6 +170,8 @@ func (project *Project) Task(name string, args ...interface{}) *Task {
 			task.WatchGlobs = t
 		case Pre:
 			task.Dependencies = t
+		case Debounce:
+			task.Debounce = int64(t)
 		case func():
 			task.Handler = t
 		case func(*Context):
@@ -222,9 +247,27 @@ func calculateWatchPaths(patterns []string) []string {
 	return keys
 }
 
+// gatherWatchGlobs gathers all the globs of dependencies
+func (project *Project) gatherWatchInfo(task *Task) (globs []string, regexps []*RegexpInfo) {
+	globs = task.WatchGlobs
+	regexps = task.WatchRegexps
+
+	if len(task.Dependencies) > 0 {
+		for _, depname := range task.Dependencies {
+			proj, task := project.mustTask(depname)
+			tglobs, tregexps := proj.gatherWatchInfo(task)
+			task.EffectiveWatchRegexps = task.WatchRegexps
+			globs = append(globs, tglobs...)
+			regexps = append(regexps, tregexps...)
+		}
+	}
+	task.EffectiveWatchRegexps = regexps
+	return
+}
+
 // Watch watches the Files of a task and reruns the task on a watch event. Any
 // direct dependency is also watched.
-func (project *Project) Watch(names []string) {
+func (project *Project) Watch(names []string, isParent bool) {
 	funcs := []func(){}
 
 	if len(names) == 0 {
@@ -234,7 +277,8 @@ func (project *Project) Watch(names []string) {
 	}
 
 	taskClosure := func(project *Project, task *Task, taskname string, logName string) func() {
-		paths := calculateWatchPaths(task.WatchGlobs)
+		globs, _ := project.gatherWatchInfo(task)
+		paths := calculateWatchPaths(globs)
 		return func() {
 			if len(paths) == 0 {
 				return
@@ -255,14 +299,14 @@ func (project *Project) Watch(names []string) {
 		}
 
 		// TODO should this be recursive? --mario
-		if len(task.Dependencies) > 0 {
-			for _, depname := range task.Dependencies {
-				proj, task := project.mustTask(depname)
-				if len(task.WatchFiles) > 0 {
-					funcs = append(funcs, taskClosure(proj, task, taskname, taskname+">"+depname))
-				}
-			}
-		}
+		// if len(task.Dependencies) > 0 {
+		// 	for _, depname := range task.Dependencies {
+		// 		proj, task := project.mustTask(depname)
+		// 		if len(task.WatchFiles) > 0 {
+		// 			funcs = append(funcs, taskClosure(proj, task, taskname, taskname+">"+depname))
+		// 		}
+		// 	}
+		// }
 	}
 	if len(funcs) > 0 {
 		done := all(funcs)

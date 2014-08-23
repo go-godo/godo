@@ -1,7 +1,7 @@
 package gosu
 
 import (
-	//"log"
+	"sort"
 	"testing"
 )
 
@@ -94,11 +94,12 @@ func TestCalculateWatchPaths(t *testing.T) {
 	if len(paths) != 2 {
 		t.Error("Expected exact elements")
 	}
-	if paths[0] != "example/views/" {
-		t.Error("Expected example/views/ got", paths[0])
+	sort.Strings(paths)
+	if paths[0] != "example.html" {
+		t.Error("Expected exact file paths got", paths[0])
 	}
-	if paths[1] != "example.html" {
-		t.Error("Expected exact file paths got", paths[1])
+	if paths[1] != "example/views/" {
+		t.Error("Expected example/views/ got", paths[1])
 	}
 
 	// should only watch current directory
@@ -112,5 +113,23 @@ func TestCalculateWatchPaths(t *testing.T) {
 	}
 	if paths[0] != "." {
 		t.Error("Expected . got", paths[0])
+	}
+}
+
+func TestGatherWatchGlobs(t *testing.T) {
+	tasks := func(p *Project) {
+		p.Task("views", Watch{"example/views/**/*.go.html"}, func(c *Context) {
+		})
+
+		p.Task("server", Pre{"views"}, Watch{"example/**/*.go"}, func(c *Context) {
+		})
+	}
+
+	project := NewProject(tasks)
+	_, task := project.mustTask("server")
+	globs := project.gatherWatchGlobs(task)
+	sort.Strings(globs)
+	if globs[0] != "example/**/*.go" && globs[1] != "example/views/**/*.go.html" {
+		t.Error("Did not return expected globs")
 	}
 }

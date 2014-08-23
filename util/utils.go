@@ -137,27 +137,38 @@ func StartError(command string, options ...map[string]interface{}) error {
 	h := sha1.New()
 	io.WriteString(h, command)
 	pidfile := filepath.Join(os.TempDir(), fmt.Sprintf("%x.pid", h.Sum(nil)))
-	Debug("Util", "pid file %s\n", pidfile)
 
-	if _, err := os.Stat(pidfile); !os.IsNotExist(err) {
-		pidb, err := ioutil.ReadFile(pidfile)
-		if err != nil {
-			Error("Start", "Could not read pidfile %s\n", pidfile)
-		}
-		pid := ToInt(string(pidb))
-		if pid != 0 {
-			existingProcess, err := os.FindProcess(pid)
+	killExisting := func() {
+		if _, err := os.Stat(pidfile); !os.IsNotExist(err) {
+			pidb, err := ioutil.ReadFile(pidfile)
 			if err != nil {
-				Error("Start", "Could not find process %d\n", pid)
+				Error("Start", "Could not read pidfile %s\n", pidfile)
+				return
 			}
-			if existingProcess != nil {
-				err := existingProcess.Kill()
+			pid := ToInt(string(pidb))
+			if pid != 0 {
+				existingProcess, err := os.FindProcess(pid)
 				if err != nil {
-					Error("Start", "Could not kill existing process%d\n", pid)
+					Error("Start", "Could not find process %d\n", pid)
+					return
+				}
+				if existingProcess != nil {
+					err := existingProcess.Kill()
+					if err != nil {
+						Error("Start", "Could not kill existing process %+v\n", existingProcess)
+						return
+					}
+					_, err = existingProcess.Wait()
+					if err != nil {
+						Error("Start", "Error waiting %v\n", err)
+						return
+					}
 				}
 			}
 		}
 	}
+
+	killExisting()
 
 	err := cmd.Start()
 	if err != nil {

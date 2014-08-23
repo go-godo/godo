@@ -1,7 +1,6 @@
 package gosu
 
 import (
-	//"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -19,6 +18,8 @@ type Watch []string
 
 // Pre are dependencies which are run before a task.
 type Pre []string
+
+type Debounce int64
 
 // TaskFunction is the signature of the function used to define a type.
 // type TaskFunc func(string, ...interface{}) *Task
@@ -38,9 +39,14 @@ type Task struct {
 	WatchGlobs   []string
 	WatchRegexps []*RegexpInfo
 
+	// computed based on dependencies
+	EffectiveWatchRegexps []*RegexpInfo
+	EffectiveWatchGlobs   []string
+
 	// Complete indicates whether this task has already ran. This flag is
 	// ignored in watch mode.
 	Complete bool
+	Debounce int64
 }
 
 // Expands glob patterns.
@@ -78,7 +84,7 @@ func (task *Task) isWatchedFile(e *watcher.FileEvent) bool {
 		return false
 	}
 	matched := false
-	for _, info := range task.WatchRegexps {
+	for _, info := range task.EffectiveWatchRegexps {
 		if info.Negate {
 			if matched {
 				matched = !info.MatchString(filename)

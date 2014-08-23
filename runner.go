@@ -9,6 +9,7 @@ import (
 var watching = flag.Bool("watch", false, "Watch task and dependencies")
 var help = flag.Bool("help", false, "View this usage screen")
 var verbose = flag.Bool("verbose", false, "View more info like which file changed")
+var debounceMilliseconds = flag.Int64("debounce", 2000, "Default number of milliseconds to debounce tasks")
 
 // Run runs a project of tasks.
 func Run(tasksFunc func(*Project)) {
@@ -36,7 +37,7 @@ func Run(tasksFunc func(*Project)) {
 	}
 
 	if *watching {
-		project.Watch(flag.Args())
+		project.Watch(flag.Args(), true)
 	}
 }
 
