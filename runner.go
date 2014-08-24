@@ -9,7 +9,13 @@ import (
 var watching = flag.Bool("watch", false, "Watch task and dependencies")
 var help = flag.Bool("help", false, "View this usage screen")
 var verbose = flag.Bool("verbose", false, "View more info like which file changed")
-var debounceMilliseconds = flag.Int64("debounce", 2000, "Default number of milliseconds to debounce tasks")
+
+// DebounceMs is the default time (1500 ms) to debounce task events in watch mode.
+var DebounceMs int64
+
+func init() {
+	DebounceMs = 1500
+}
 
 // Run runs a project of tasks.
 func Run(tasksFunc func(*Project)) {
@@ -42,7 +48,7 @@ func Run(tasksFunc func(*Project)) {
 }
 
 // MustNotError checks if error is not nil. If it is not nil it will panic.
-func MustNotError(err error) {
+func mustNotError(err error) {
 	if err != nil {
 		panic(err)
 	}

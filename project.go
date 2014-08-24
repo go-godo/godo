@@ -66,7 +66,7 @@ func (project *Project) namespaceTaskName(name string) (namespace string, taskNa
 func (project *Project) debounce(task *Task) bool {
 	debounceMs := task.Debounce
 	if debounceMs == 0 {
-		debounceMs = *debounceMilliseconds
+		debounceMs = DebounceMs
 	}
 
 	now := time.Now().UnixNano()
@@ -205,7 +205,7 @@ func watchTask(root string, logName string, handler func(e *watcher.FileEvent)) 
 			firstTime = false
 		}
 		event := <-watchr.Event
-		//util.Debug("DBG", "event %+v\n", event)
+		//util.Debug("DBG", "watchr.Event %+v\n", event)
 		isOlder := event.UnixNano < lastHappenedTime
 		lastHappenedTime = event.UnixNano
 

@@ -57,7 +57,7 @@ func main() {
 	cmd := "go run " + src + " " + strings.Join(os.Args[1:], " ")
 	//log.Printf("DBG %s\n", cmd)
 	// errors are displayed by tasks
-	util.ExecError(cmd)
+	util.RunError(cmd)
 }
 
 func buildMain(src string) string {
