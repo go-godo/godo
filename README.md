@@ -28,7 +28,7 @@ As an example, create a file 'tasks/Gosufile.go'
         p.Task("default", Pre{"hello, "views"})
 
         p.Task("hello", func() {
-            util.Exec(`bash -c "echo Hello $USER!"`)
+            util.Run(`bash -c "echo Hello $USER!"`)
         })
 
         p.Task("views", Watch{"**/*.go.html"}, func(c *Context) {
@@ -45,8 +45,8 @@ As an example, create a file 'tasks/Gosufile.go'
 
         p.Task("server", Watch{"**/*.go}, Pre{"views"}, Debounce(3000), func() {
             // DO NOT use "go run", it creates a child process that is difficult to kill
-            utils.Run("go install")
-            utils.Start("example --port=8080")
+            util.Run("go build -o example main.go", M{"Dir": "example"})
+            util.Start("example", M{"Dir": "example"})
         })
     }
 
