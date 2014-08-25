@@ -3,7 +3,9 @@ package gosu
 import (
 	"os"
 	//"time"
+	"sync"
 
+	//"github.com/mgutz/gosu/util"
 	flag "github.com/ogier/pflag"
 )
 
@@ -13,6 +15,7 @@ var verbose = flag.Bool("verbose", false, "View more info like which file change
 
 // DebounceMs is the default time (1500 ms) to debounce task events in watch mode.
 var DebounceMs int64
+var waitgroup sync.WaitGroup
 
 func init() {
 	DebounceMs = 3000
@@ -49,6 +52,8 @@ func Gosu(tasksFunc func(*Project)) {
 	if *watching {
 		project.Watch(flag.Args(), true)
 	}
+
+	waitgroup.Wait()
 }
 
 // MustNotError checks if error is not nil. If it is not nil it will panic.

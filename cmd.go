@@ -5,7 +5,9 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/mgutz/gosu/util"
@@ -18,78 +20,87 @@ func init() {
 	//	setupSignals()
 }
 
-// RunError is a simple way to execute a CLI utility.
-func RunError(command string, options ...map[string]interface{}) error {
-	argv := str.ToArgv(command)
-	executable := argv[0]
-	argv = argv[1:]
-	// for _, arg := range args {
-	// 	argv = append(argv, arg)
-	// }
-	cmd := exec.Command(executable, argv...)
-
-	if len(options) == 1 {
-		opts := options[0]
-		if opts["Dir"] != nil {
-			cmd.Dir = opts["Dir"].(string)
-		}
-		if opts["Env"] != nil {
-			cmd.Env = opts["Env"].([]string)
-		}
-	}
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	return cmd.Run()
-}
-
 // Run is simple way to execute a CLI utility. `command` is parsed
 // for arguments. args is optional and unparsed.
 func Run(command string, options ...map[string]interface{}) {
-	err := RunError(command, options...)
+	err := StartAsync(false, command, options...)
 	if err != nil {
 		util.Error("Run", "%s\n%+v", command, err)
 	}
 }
 
-// StartError is a simple way to start a process. If start is called with the same
-// command it will kill the previous process.
-func StartError(command string, options ...map[string]interface{}) error {
+// StartAsync starts a process async or sync based on the first flag. If it is an async
+// operation the process is tracked and killed if started again.
+func StartAsync(isAsync bool, command string, options ...map[string]interface{}) error {
+	existing := spawnedProcesses[command]
 	argv := str.ToArgv(command)
 	executable := argv[0]
-	argv = argv[1:]
-	// for _, arg := range args {
-	// 	argv = append(argv, arg)
-	// }
-	cmd := exec.Command(executable, argv...)
+	isGoFile := strings.HasSuffix(executable, ".go")
+	if isGoFile {
+		// install the executable
+		err := StartAsync(false, "go install", options...)
+		if err != nil {
+			return err
+		}
+
+		// need name of executable which is the dir name not the go file
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		util.Error("Start", "Could not get work directory\n")
+		return err
+	}
+	var env []string
 	if len(options) == 1 {
 		opts := options[0]
 		if opts["Dir"] != nil {
-			cmd.Dir = opts["Dir"].(string)
+			wd = opts["Dir"].(string)
 		}
 		if opts["Env"] != nil {
-			cmd.Env = opts["Env"].([]string)
+			env = opts["Env"].([]string)
 		}
+	}
+
+	if isGoFile {
+		executable = path.Base(wd)
+	}
+
+	argv = argv[1:]
+	cmd := exec.Command(executable, argv...)
+	cmd.Dir = wd
+	if len(env) > 0 {
+		cmd.Env = env
 	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	// kills previously (if any) spawned process
-	killSpawned(command)
+	// kills previously spawned process (if exists)
+	if isAsync {
+		killSpawned(command)
+	}
 
-	err := cmd.Start()
-	spawnedProcesses[command] = cmd.Process
+	if isAsync {
+		err = cmd.Start()
+		spawnedProcesses[command] = cmd.Process
+	} else {
+		err = cmd.Run()
+	}
 	if err != nil {
 		util.Error("Start", "Could not start process %s\n", command)
 		return err
 	}
+
+	if isAsync && existing == nil {
+		waitgroup.Add(1)
+	}
 	return nil
 }
 
-// Start is a simple way to start a process. If start is called with the same
+// Start is a simple way to start a process or go file. If start is called with the same
 // command it will kill the previous process.
 func Start(command string, options ...map[string]interface{}) {
-	err := StartError(command, options...)
+	err := StartAsync(true, command, options...)
 	if err != nil {
 		util.Error("Start", "%s\n%+v\n", command, err)
 	}

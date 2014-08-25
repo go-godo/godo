@@ -297,21 +297,11 @@ func (project *Project) Watch(names []string, isParent bool) {
 
 	for _, taskname := range names {
 		proj, task := project.mustTask(taskname)
-
 		if len(task.WatchFiles) > 0 {
 			funcs = append(funcs, taskClosure(proj, task, taskname, taskname))
 		}
-
-		// TODO should this be recursive? --mario
-		// if len(task.Dependencies) > 0 {
-		// 	for _, depname := range task.Dependencies {
-		// 		proj, task := project.mustTask(depname)
-		// 		if len(task.WatchFiles) > 0 {
-		// 			funcs = append(funcs, taskClosure(proj, task, taskname, taskname+">"+depname))
-		// 		}
-		// 	}
-		// }
 	}
+
 	if len(funcs) > 0 {
 		done := all(funcs)
 		<-done

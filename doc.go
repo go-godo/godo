@@ -37,9 +37,8 @@
 //          })
 //
 //          p.Task("server", D{"views"}, W{"**/*.go}, Debounce(3000), func() {
-//              // DO NOT use "go run", it creates a child process that is difficult to kill
-//              Run("go build -o example main.go", M{"Dir": "example"})
-//              Start("example", M{"Dir": "example"})
+//              // Start runs cli utils and has extra logic to handle go http servers when passed a go file
+//              Start("main.go", M{"Dir": "example"})
 //          })
 //      }
 //
@@ -63,7 +62,7 @@
 //
 // Task handlers
 //
-//      func() {} - Simple function handler
+//      func() {}           - Simple function handler
 //      func(c *Context) {} - Handler which accepts the current context
 //
 // To run "views" from terminal
@@ -74,8 +73,9 @@
 //
 //      gosu
 //
-// Note the "views" task specifies W{"**/*.go.html"}, which is a glob pattern
-// to watch any file with .go.html extension. To rerun "views" whenever any file changes, run gosu in watch mode
+// Note the "views" task specifies a watch option `W{"**/*.go.html"}`, which
+// is a glob file pattern to watch any file with .go.html extension.
+// To rerun "views" whenever any file changes, run gosu in watch mode
 //
 //      gosu --watch
 //

@@ -155,6 +155,7 @@ func StartError(command string, options ...map[string]interface{}) error {
 					return
 				}
 				if existingProcess != nil {
+					fmt.Printf("existingPRocess %+v\n", existingProcess)
 					err := existingProcess.Kill()
 					if err != nil {
 						Error("Start", "Could not kill existing process %+v\n", existingProcess)

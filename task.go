@@ -95,6 +95,9 @@ func (task *Task) RunWithEvent(logName string, e *watcher.FileEvent) {
 	start := time.Now()
 	if len(task.WatchGlobs) > 0 && len(task.WatchFiles) == 0 {
 		task.expandGlobs()
+		if len(task.WatchFiles) == 0 {
+			util.Error("task", "\""+task.Name+"\" '%v' did not match any files\n", task.WatchGlobs)
+		}
 	}
 	// Run this task only if the file matches watch Regexps
 	rebuilt := ""
