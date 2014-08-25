@@ -165,10 +165,14 @@ func (project *Project) Task(name string, args ...interface{}) *Task {
 	for _, t := range args {
 		switch t := t.(type) {
 		default:
-			util.Panic("project", "unexpected type %T", t) // %T prints whatever type t has
+			util.Panic("project", "unexpected type %T\n", t) // %T prints whatever type t has
 		case Watch:
 			task.WatchGlobs = t
-		case Pre:
+		case W:
+			task.WatchGlobs = t
+		case Dependencies:
+			task.Dependencies = t
+		case D:
 			task.Dependencies = t
 		case Debounce:
 			task.Debounce = int64(t)

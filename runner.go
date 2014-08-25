@@ -2,6 +2,7 @@ package gosu
 
 import (
 	"os"
+	//"time"
 
 	flag "github.com/ogier/pflag"
 )
@@ -14,11 +15,11 @@ var verbose = flag.Bool("verbose", false, "View more info like which file change
 var DebounceMs int64
 
 func init() {
-	DebounceMs = 1500
+	DebounceMs = 3000
 }
 
-// Run runs a project of tasks.
-func Run(tasksFunc func(*Project)) {
+// Gosu runs a project of tasks.
+func Gosu(tasksFunc func(*Project)) {
 	project := NewProject(tasksFunc)
 
 	flag.Parse()
@@ -41,6 +42,9 @@ func Run(tasksFunc func(*Project)) {
 			project.Run(name)
 		}
 	}
+
+	// dependencies fire off a bunch of file events, let them die
+	//time.Sleep(250 * time.Millisecond)
 
 	if *watching {
 		project.Watch(flag.Args(), true)

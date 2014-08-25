@@ -4,30 +4,29 @@ import (
 	"github.com/mgutz/goa"
 	f "github.com/mgutz/goa/filter"
 	. "github.com/mgutz/gosu"
-	"github.com/mgutz/gosu/util"
 	"github.com/mgutz/str"
 )
 
 // Tasks is local project.
 func Tasks(p *Project) {
 
-	p.Task("dist", Pre{"lint"})
+	p.Task("dist", D{"lint", "readme"})
 
 	p.Task("install", func() {
-		util.Run("go get github.com/golang/lint/golint")
-		util.Run("go get github.com/mgutz/goa")
-		util.Run("go get github.com/robertkrimen/godocdown/godocdown")
+		Run("go get github.com/golang/lint/golint")
+		Run("go get github.com/mgutz/goa")
+		Run("go get github.com/robertkrimen/godocdown/godocdown")
 
 	})
 
 	p.Task("lint", func() {
-		util.Run("golint .")
-		util.Run("gofmt -w -s .")
-		util.Run("go vet .")
+		Run("golint .")
+		Run("gofmt -w -s .")
+		Run("go vet .")
 	})
 
 	p.Task("readme", func() {
-		util.Run("godocdown -o README.md")
+		Run("godocdown -o README.md")
 		// add godoc
 		goa.Pipe(
 			f.Load("./README.md"),

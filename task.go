@@ -9,19 +9,6 @@ import (
 	"github.com/mgutz/gosu/watcher"
 )
 
-// Files type is use to discern between files and dependencies when adding
-// a task to the project.
-type Files []string
-
-// Watch type defines the glob patterns to use for watching.
-type Watch []string
-
-// Pre are dependencies which are run before a task.
-type Pre []string
-
-// Debounce is the number of milliseconds to debounce a task when watching.
-type Debounce int64
-
 // TaskFunction is the signature of the function used to define a type.
 // type TaskFunc func(string, ...interface{}) *Task
 // type UseFunc func(string, interface{})

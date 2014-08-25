@@ -27,7 +27,7 @@ func TestDependency(t *testing.T) {
 			result = "A"
 		})
 
-		p.Task("bar", Pre{"foo"})
+		p.Task("bar", D{"foo"})
 	}
 	project := NewProject(tasks)
 	project.Run("bar")
@@ -40,7 +40,7 @@ func TestMultiProject(t *testing.T) {
 	result := ""
 
 	otherTasks := func(p *Project) {
-		p.Task("foo", Pre{"bar"}, func(c *Context) {
+		p.Task("foo", D{"bar"}, func(c *Context) {
 			result += "B"
 		})
 
@@ -56,7 +56,7 @@ func TestMultiProject(t *testing.T) {
 			result += "A"
 		})
 
-		p.Task("bar", Pre{"foo", "other:foo"})
+		p.Task("bar", D{"foo", "other:foo"})
 	}
 	project := NewProject(tasks)
 	project.Run("bar")
@@ -72,7 +72,7 @@ func TestShouldExpandGlobs(t *testing.T) {
 			result = "A"
 		})
 
-		p.Task("bar", Watch{"test/**/*.html"}, Pre{"foo"})
+		p.Task("bar", Watch{"test/**/*.html"}, D{"foo"})
 	}
 	project := NewProject(tasks)
 	project.Run("bar")
@@ -113,23 +113,5 @@ func TestCalculateWatchPaths(t *testing.T) {
 	}
 	if paths[0] != "." {
 		t.Error("Expected . got", paths[0])
-	}
-}
-
-func TestGatherWatchGlobs(t *testing.T) {
-	tasks := func(p *Project) {
-		p.Task("views", Watch{"example/views/**/*.go.html"}, func(c *Context) {
-		})
-
-		p.Task("server", Pre{"views"}, Watch{"example/**/*.go"}, func(c *Context) {
-		})
-	}
-
-	project := NewProject(tasks)
-	_, task := project.mustTask("server")
-	globs := project.gatherWatchGlobs(task)
-	sort.Strings(globs)
-	if globs[0] != "example/**/*.go" && globs[1] != "example/views/**/*.go.html" {
-		t.Error("Did not return expected globs")
 	}
 }
