@@ -1,17 +1,13 @@
-// Package gosu is a project build toolkit for Go in the spirit of Rake, Grunt and
-// others. Gosu supports watching, file globs, tasks and modular projects.
-//
-// Gosu requires a tasks configuration function, in which task are
-// registered and other tasks imported.
+// Package gosu is a project build tool for Go in the spirit of Rake, Grunt,
+// Gulp and others. Gosu supports watching, tasks and restarting go apps.
 //
 // To install
 //
-//      go get -u github.com/mgutz/gosu
 //      go get -u github.com/mgutz/gosu/cmd/gosu
 //
-// As an example, create a file 'tasks/Gosufile.go'
+// As an example, create a file 'tasks/Gosufile.go' wit this content
 //
-//      package tasks
+//      package main
 //
 //      import (
 //          . "github.com/mgutz/gosu"
@@ -24,20 +20,12 @@
 //              Run(`bash -c "echo Hello $USER!"`)
 //          })
 //
-//          p.Task("views", W{"**/*.go.html"}, func(c *Context) {
-//              if c.FileEvent == nil {
-//                  for _, f := range c.Task.WatchFiles {
-//                      // f.FileInfo and f.Path
-//                      fmt.Printf("File: %s\n", f.Path)
-//                  }
-//              } else {
-//                  // change event when watching
-//                  fmt.Printf("%v\n", c.FileEvent)
-//              }
+//          p.Task("views", "Compiles razor templates", W{"**/*.go.html"}, func(c *Context) {
+//              Run('razor views')
 //          })
 //
 //          p.Task("server", D{"views"}, W{"**/*.go}, Debounce(3000), func() {
-//              // Start runs cli utils and has extra logic to handle go http servers when passed a go file
+//              // start a go file and gosu will compile and restart it as needed
 //              Start("main.go", M{"Dir": "example"})
 //          })
 //      }
@@ -45,6 +33,18 @@
 //      func main() {
 //          Gosu(Tasks)
 //      }
+//
+// To run "views" task from terminal
+//
+//      gosu views
+//
+// To rerun "views" whenever any `*.go.html` file changes
+//
+//      gosu views --watch
+//
+// To run the "default" task which runs "hello" and "views"
+//
+//      gosu
 //
 // Task options
 //
@@ -64,19 +64,5 @@
 //
 //      func() {}           - Simple function handler
 //      func(c *Context) {} - Handler which accepts the current context
-//
-// To run "views" from terminal
-//
-//      gosu views
-//
-// To run the "default" task which runs the dependencies "hello", "views"
-//
-//      gosu
-//
-// Note the "views" task specifies a watch option `W{"**/*.go.html"}`, which
-// is a glob file pattern to watch any file with .go.html extension.
-// To rerun "views" whenever any file changes, run gosu in watch mode
-//
-//      gosu --watch
 //
 package gosu

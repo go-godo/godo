@@ -1,4 +1,4 @@
-package tasks
+package main
 
 import (
 	"github.com/mgutz/goa"
@@ -16,7 +16,6 @@ func Tasks(p *Project) {
 		Run("go get github.com/golang/lint/golint")
 		Run("go get github.com/mgutz/goa")
 		Run("go get github.com/robertkrimen/godocdown/godocdown")
-
 	})
 
 	p.Task("lint", func() {
@@ -35,4 +34,12 @@ func Tasks(p *Project) {
 			f.Write(),
 		)
 	})
+
+	p.Task("build", func() {
+		Run("go install", M{"Dir": "cmd/gosu"})
+	})
+}
+
+func main() {
+	Gosu(Tasks)
 }

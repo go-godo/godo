@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/mgutz/gosu"
 	"github.com/mgutz/gosu/util"
 	"github.com/mgutz/str"
 )
@@ -57,7 +58,7 @@ func main() {
 	cmd := "go run " + src + " " + strings.Join(os.Args[1:], " ")
 	//log.Printf("DBG %s\n", cmd)
 	// errors are displayed by tasks
-	util.RunError(cmd)
+	gosu.Run(cmd)
 }
 
 func buildMain(src string) string {

@@ -4,21 +4,15 @@ import (
 	//"fmt"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path"
 	"strconv"
 	"strings"
-	"syscall"
 
 	"github.com/mgutz/gosu/util"
 	"github.com/mgutz/str"
 )
 
 var spawnedProcesses = make(map[string]*os.Process)
-
-func init() {
-	//	setupSignals()
-}
 
 // Run is simple way to execute a CLI utility. `command` is parsed
 // for arguments. args is optional and unparsed.
@@ -37,13 +31,11 @@ func StartAsync(isAsync bool, command string, options ...map[string]interface{})
 	executable := argv[0]
 	isGoFile := strings.HasSuffix(executable, ".go")
 	if isGoFile {
-		// install the executable
+		// install the executable which compiles files
 		err := StartAsync(false, "go install", options...)
 		if err != nil {
 			return err
 		}
-
-		// need name of executable which is the dir name not the go file
 	}
 
 	wd, err := os.Getwd()
@@ -61,7 +53,6 @@ func StartAsync(isAsync bool, command string, options ...map[string]interface{})
 			env = opts["Env"].([]string)
 		}
 	}
-
 	if isGoFile {
 		executable = path.Base(wd)
 	}
@@ -75,12 +66,9 @@ func StartAsync(isAsync bool, command string, options ...map[string]interface{})
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	// kills previously spawned process (if exists)
 	if isAsync {
+		// kills previously spawned process (if exists)
 		killSpawned(command)
-	}
-
-	if isAsync {
 		err = cmd.Start()
 		spawnedProcesses[command] = cmd.Process
 	} else {
@@ -98,7 +86,7 @@ func StartAsync(isAsync bool, command string, options ...map[string]interface{})
 }
 
 // Start is a simple way to start a process or go file. If start is called with the same
-// command it will kill the previous process.
+// command it kills the previous process.
 func Start(command string, options ...map[string]interface{}) {
 	err := StartAsync(true, command, options...)
 	if err != nil {
@@ -130,16 +118,4 @@ func killSpawned(command string) {
 		util.Error("Start", "Error waiting %v\n", err)
 		return
 	}
-}
-
-func setupSignals() {
-	sigc := make(chan os.Signal, 1)
-	//signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-	signal.Notify(sigc, syscall.SIGINT)
-	go func() {
-		<-sigc
-		for command := range spawnedProcesses {
-			killSpawned(command)
-		}
-	}()
 }
