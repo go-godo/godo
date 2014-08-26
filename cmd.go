@@ -26,7 +26,7 @@ func Run(command string, options ...map[string]interface{}) {
 // StartAsync starts a process async or sync based on the first flag. If it is an async
 // operation the process is tracked and killed if started again.
 func StartAsync(isAsync bool, command string, options ...map[string]interface{}) error {
-	existing := spawnedProcesses[command]
+	//existing := spawnedProcesses[command]
 	argv := str.ToArgv(command)
 	executable := argv[0]
 	isGoFile := strings.HasSuffix(executable, ".go")
@@ -69,19 +69,31 @@ func StartAsync(isAsync bool, command string, options ...map[string]interface{})
 	if isAsync {
 		// kills previously spawned process (if exists)
 		killSpawned(command)
-		err = cmd.Start()
-		spawnedProcesses[command] = cmd.Process
+		waitExit = true
+		waitgroup.Add(1)
+		go func() {
+			err = cmd.Start()
+			if err != nil {
+				util.Error("Start", "Could not start process %s\n", command)
+				return
+			}
+			spawnedProcesses[command] = cmd.Process
+			c := make(chan error, 1)
+			c <- cmd.Wait()
+			_ = <-c
+			waitgroup.Done()
+		}()
 	} else {
 		err = cmd.Run()
-	}
-	if err != nil {
-		util.Error("Start", "Could not start process %s\n", command)
-		return err
+		if err != nil {
+			util.Error("Start", "Could not start process %s\n", command)
+			return err
+		}
 	}
 
-	if isAsync && existing == nil {
-		waitgroup.Add(1)
-	}
+	// if isAsync && existing == nil {
+	// 	waitExit = true
+	// }
 	return nil
 }
 
@@ -113,9 +125,10 @@ func killSpawned(command string) {
 		util.Error("Start", "Could not kill existing process %+v\n", process)
 		return
 	}
-	_, err = process.Wait()
-	if err != nil {
-		util.Error("Start", "Error waiting %v\n", err)
-		return
-	}
+	// _, err = process.Wait()
+	// if err != nil {
+	// 	util.Error("Start", "Error waiting %v\n", err)
+	// 	return
+	// }
+	// waitgroup.Done()
 }

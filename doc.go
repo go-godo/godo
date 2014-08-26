@@ -46,9 +46,9 @@
 //
 //      gosu
 //
-// Task names may add a "?" suffix meaning only run once even when watching
+// Task names may add a "?" suffix to indicate run only once
 //
-//      // build once regardless of number of dependees
+//      // run once regardless of number of dependees
 //      p.Task("build?", func() {})
 //
 // Task options
