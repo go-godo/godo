@@ -35,6 +35,7 @@ type Task struct {
 	// ignored in watch mode.
 	Complete bool
 	Debounce int64
+	RunOnce  bool
 }
 
 // Expands glob patterns.
@@ -92,6 +93,11 @@ func (task *Task) isWatchedFile(e *watcher.FileEvent) bool {
 // *e* FileEvent contains information about the file/directory which changed
 // in watch mode.
 func (task *Task) RunWithEvent(logName string, e *watcher.FileEvent) {
+	if task.RunOnce && task.Complete {
+		//util.Debug(task.Name, "Already ran\n")
+		return
+	}
+
 	start := time.Now()
 	if len(task.WatchGlobs) > 0 && len(task.WatchFiles) == 0 {
 		task.expandGlobs()

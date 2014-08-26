@@ -52,6 +52,11 @@ To run the "default" task which runs "hello" and "views"
 
     gosu
 
+Task names may add a "?" suffix meaning only run once even when watching
+
+    // build once regardless of number of dependees
+    p.Task("build?", func() {})
+
 Task options
 
     D{} or Dependencies{} - dependent tasks which run before task

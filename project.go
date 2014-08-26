@@ -160,7 +160,12 @@ func (project *Project) Use(namespace string, tasksFunc func(*Project)) {
 
 // Task adds a task to the project.
 func (project *Project) Task(name string, args ...interface{}) *Task {
-	task := &Task{Name: name}
+	runOnce := false
+	if strings.HasSuffix(name, "?") {
+		runOnce = true
+		name = str.ChompRight(name, "?")
+	}
+	task := &Task{Name: name, RunOnce: runOnce}
 
 	for _, t := range args {
 		switch t := t.(type) {
