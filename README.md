@@ -13,7 +13,7 @@ To install
 
 As an example, create a file 'tasks/Gosufile.go' wit this content
 
-    package tasks
+    package main
 
     import (
         . "github.com/mgutz/gosu"
@@ -44,13 +44,13 @@ To run "views" task from terminal
 
     gosu views
 
-To run the "default" task which runs "hello" and "views"
-
-    gosu
-
 To rerun "views" whenever any `*.go.html` file changes
 
     gosu views --watch
+
+To run the "default" task which runs "hello" and "views"
+
+    gosu
 
 Task options
 
