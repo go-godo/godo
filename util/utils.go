@@ -22,7 +22,7 @@ func PackageName(sourceFile string) (string, error) {
 	}
 	sourceFile, err := filepath.Abs(sourceFile)
 	if err != nil {
-		panic("Could not convert to absolute path: " + sourceFile)
+		Panic("Could not convert to absolute path: %s", sourceFile)
 	}
 
 	gopath := os.Getenv("GOPATH")
@@ -51,22 +51,22 @@ func PackageName(sourceFile string) (string, error) {
 func Template(src string, dest string, data map[string]interface{}) {
 	content, err := ioutil.ReadFile(src)
 	if err != nil {
-		Panic("template", "Could not read file %s\n", src)
+		Panic("template", "Could not read file %s\n%v\n", src, err)
 	}
 
 	tpl := template.New("vagrantFile")
 	tpl, err = tpl.Parse(string(content))
 	if err != nil {
-		Panic("template", "Could not parse template %s\n", src)
+		Panic("template", "Could not parse template %s\n%v\n", src, err)
 	}
 
 	f, err := os.Create(dest)
 	if err != nil {
-		Panic("template", "Could not create file for writing %s\n", dest)
+		Panic("template", "Could not create file for writing %s\n%v\n", dest, err)
 	}
 	defer f.Close()
 	err = tpl.Execute(f, data)
 	if err != nil {
-		Panic("template", "Could not execute template %s\n", src)
+		Panic("template", "Could not execute template %s\n%v\n", src, err)
 	}
 }

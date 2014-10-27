@@ -25,7 +25,7 @@
 //          })
 //
 //          p.Task("server", D{"views"}, W{"**/*.go}, Debounce(3000), func() {
-//              // start a go file and gosu will compile and restart it as needed
+//              // Start recompiles and restarts on changes when watching
 //              Start("main.go", M{"Dir": "example"})
 //          })
 //      }

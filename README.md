@@ -2,16 +2,14 @@
 
 [godoc](https://godoc.org/github.com/mgutz/gosu)
 
-    import "github.com/mgutz/gosu"
-
-Package gosu is a project build tool for Go in the spirit of Rake, Grunt, Gulp
-and others. Gosu supports watching, tasks and restarting go apps.
+gosu is a task runner and file watcher for golang in the spirit of
+rake, gulp.
 
 To install
 
     go get -u github.com/mgutz/gosu/cmd/gosu
 
-As an example, create a file 'tasks/Gosufile.go' wit this content
+As an example, create a file **"tasks/Gosufile.go"** with this content
 
     package main
 
@@ -31,7 +29,7 @@ As an example, create a file 'tasks/Gosufile.go' wit this content
         })
 
         p.Task("server", D{"views"}, W{"**/*.go}, Debounce(3000), func() {
-            // start a go file and gosu will compile and restart it as needed
+            // Start recompiles and restarts on changes when watching
             Start("main.go", M{"Dir": "example"})
         })
     }
