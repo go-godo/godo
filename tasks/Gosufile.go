@@ -41,8 +41,13 @@ func Tasks(p *Project) {
 	})
 
 	p.Task("interactive", func() {
-		output, _ := Run(`bash -c "echo name?; read name; echo hello $name"`)
+		output, _ := Bash(`
+			echo name?
+			read name
+			echo hello $name
+		`)
 		fmt.Println(output)
+		Bash(`pwd`)
 	})
 }
 

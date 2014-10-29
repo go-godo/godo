@@ -1,8 +1,10 @@
 package gosu
 
 import (
+	"io/ioutil"
 	"os"
 	"sort"
+	"strings"
 	"testing"
 )
 
@@ -119,8 +121,45 @@ func TestCalculateWatchPaths(t *testing.T) {
 
 func TestInheritedRunEnv(t *testing.T) {
 	os.Setenv("TEST_RUN_ENV", "fubar")
-	output, _ := Run(`bash -c "echo -n $TEST_RUN_ENV $FOO"`, M{"Env": []string{"FOO=bar", "BAH=baz"}})
+	output, _ := Run(`bash -c "echo -n $TEST_RUN_ENV $FOO"`, &Cmd{Env: []string{"FOO=bar", "BAH=baz"}})
 	if output != "fubar bar" {
 		t.Error("Environment was not inherited! Got", "XX"+output+"ZZ")
+	}
+}
+
+func TestInside(t *testing.T) {
+	Inside("./test", func() {
+		out, _ := Run("bash foo.sh")
+		if out != "FOOBAR" {
+			t.Error("Inside failed")
+		}
+	})
+
+	version, _ := ioutil.ReadFile("./VERSION.go")
+	if !strings.Contains(string(version), "var Version") {
+		t.Error("Inside failed to reset work directory")
+	}
+}
+
+func TestBash(t *testing.T) {
+	out, _ := Bash(`echo -n foobar`)
+	if out != "foobar" {
+		t.Error("Simple bash failed. Got", out)
+	}
+
+	out, _ = Bash(`
+		echo -n foobar
+		echo -n bahbaz
+	`)
+	if out != "foobarbahbaz" {
+		t.Error("Multiline bash failed. Got", out)
+	}
+
+	out, _ = Bash(`
+		echo -n \
+		foobar
+	`)
+	if out != "foobar" {
+		t.Error("Bash line continuation failed. Got", out)
 	}
 }

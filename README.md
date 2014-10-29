@@ -9,6 +9,8 @@ To install
 
     go get -u github.com/mgutz/gosu/cmd/gosu
 
+## Gosufile
+
 As an example, create a file **"tasks/Gosufile.go"** with this content
 
     package main
@@ -21,16 +23,23 @@ As an example, create a file **"tasks/Gosufile.go"** with this content
         p.Task("default", D{"hello, "views"})
 
         p.Task("hello", func() {
-            Run(`bash -c "echo Hello $USER!"`)
+            Bash(`
+                echo Hello $USER!
+                echo It's a beautiful \
+                     day
+            `)
         })
 
-        p.Task("views", "Compiles razor templates", W{"**/*.go.html"}, func(c *Context) {
-            Run('razor views')
+        p.Task("views", "Compiles razor templates", W{"templates/**/*.go.html"}, func(c *Context) {
+            Inside("templates", func() {
+                Run("razor views")
+            })
+            Bash(`pwd`)
         })
 
         p.Task("server", D{"views"}, W{"**/*.go"}, Debounce(3000), func() {
             // Start recompiles and restarts on changes when watching
-            Start("main.go", M{"Dir": "example"})
+            Start("main.go", &Cmd{Wd: "example"})
         })
     }
 
@@ -74,17 +83,27 @@ Task handlers
     func() {}           - Simple function handler
     func(c *Context) {} - Handler which accepts the current context
 
-Exec functions
+## Exec functions
+
+
+Gosu provides simple exec functions. They are included as part of Gosu package because they
+are frequently used in tasks. Moreover, Gosu tracks the PID of the `Start()` async function
+to restart an application gracefully.
+
+    // Run a bash string script and capture its output.
+    Bash(`
+        echo -n foobar
+        echo some really long \
+            command
+    `)
 
     // Runs a command and captures its output.
     Run(command, options...)
         // capture output of shell command
         output, _ := Run(`bash -c "echo -n $HOME")
         // run main executable inside of cmd/app and set environment var FOO
-        Run("main", &Cmd{Wd: "cmd/app", Env: []string{"FOO=bar")})
+        Run("main", &Cmd{Wd: "cmd/app", Env: []string{"FOO=bar"})
 
     // Start an async command. If executable has suffix ".go" then it will
     // be "go install"ed then executed. Use this for watching a server task.
     Start(command, options...)
-
-

@@ -23,6 +23,14 @@ type Cmd struct {
 
 var spawnedProcesses = make(map[string]*os.Process)
 
+// Bash executes a bash string. Use backticks for multiline. To execute as shell script,
+// use Run("bash script.sh")
+func Bash(scriptish string, options ...*Cmd) (string, error) {
+	scriptish = strings.Replace(scriptish, `"`, `\"`, -1)
+	scriptish = strings.Replace(scriptish, `\`, `\\`, -1)
+	return startAsync(false, `bash -c "`+scriptish+`"`, options...)
+}
+
 // Run runs a command and captures its output. `command` is parsed
 // for arguments. args is optional and unparsed.
 func Run(command string, options ...*Cmd) (string, error) {
@@ -164,4 +172,24 @@ func killSpawned(command string) {
 		util.Error("Start", "Could not kill existing process %+v\n", process)
 		return
 	}
+}
+
+// Inside temporarily changes the working directory and restores it when lambda is
+// finishes.
+func Inside(dir string, lambda func()) error {
+	olddir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	err = os.Chdir(dir)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		os.Chdir(olddir)
+	}()
+	lambda()
+	return nil
 }

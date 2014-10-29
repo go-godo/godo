@@ -114,7 +114,7 @@ func (project *Project) run(name string, logName string, e *watcher.FileEvent) e
 
 // Usage prints usage about the app and tasks.
 func (project *Project) Usage() {
-	fmt.Printf("gosu %s", Version)
+	fmt.Printf("gosu %s\n", Version)
 	fmt.Printf("Usage: %s [flags] [task...]\n\n", path.Base(os.Args[0]))
 	flag.PrintDefaults()
 	fmt.Printf("\nTasks\n\n")
