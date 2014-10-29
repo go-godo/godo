@@ -18,14 +18,14 @@ As an example, create a file **"tasks/Gosufile.go"** with this content
     )
 
     func Tasks(p *Project) {
-        p.Task("default", D{"hello, "views"})
+        p.Task("default", D{"hello", "views"})
 
         p.Task("hello", func() {
             Run(`bash -c "echo Hello $USER!"`)
         })
 
         p.Task("views", "Compiles razor templates", W{"**/*.go.html"}, func(c *Context) {
-            Run('razor views')
+            Run(`razor views`)
         })
 
         p.Task("server", D{"views"}, W{"**/*.go"}, Debounce(3000), func() {
