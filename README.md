@@ -20,13 +20,13 @@ As an example, create a file **"tasks/Gosufile.go"** with this content
     )
 
     func Tasks(p *Project) {
-        p.Task("default", D{"hello, "views"})
+        p.Task("default", D{"hello", "views"})
 
         p.Task("hello", func() {
             Bash(`
                 echo Hello $USER!
-                echo It's a beautiful \
-                     day
+                echo A beautiful day \
+                    to ya
             `)
         })
 
