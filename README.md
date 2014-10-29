@@ -90,20 +90,27 @@ Gosu provides simple exec functions. They are included as part of Gosu package b
 are frequently used in tasks. Moreover, Gosu tracks the PID of the `Start()` async function
 to restart an application gracefully.
 
-    // Run a bash string script and capture its output.
+Run a bash string. Can be multine line with continutation.
+
     Bash(`
-        echo -n foobar
+        echo -n $USERj
         echo some really long \
             command
     `)
 
-    // Runs a command and captures its output.
-    Run(command, options...)
-        // capture output of shell command
-        output, _ := Run(`bash -c "echo -n $HOME")
-        // run main executable inside of cmd/app and set environment var FOO
-        Run("main", &Cmd{Wd: "cmd/app", Env: []string{"FOO=bar"})
+Run a bash string script and capture its output.
 
-    // Start an async command. If executable has suffix ".go" then it will
-    // be "go install"ed then executed. Use this for watching a server task.
-    Start(command, options...)
+    output, err := BashOutput(`echo -n $USER`)
+
+Run main executable inside of cmd/app and set environment var FOO
+
+    Run("main", &Cmd{Wd: "cmd/app", Env: []string{"FOO=bar"})
+
+Run and capture output
+
+    output, err := RunOutput('whoami')
+
+Start an async command. If executable has suffix ".go" then it will be "go install"ed then executed.
+Use this for watching a server task.
+
+    Start("main.go", &Cmd{Wd: "cmd/app")

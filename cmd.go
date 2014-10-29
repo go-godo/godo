@@ -25,16 +25,30 @@ var spawnedProcesses = make(map[string]*os.Process)
 
 // Bash executes a bash string. Use backticks for multiline. To execute as shell script,
 // use Run("bash script.sh")
-func Bash(scriptish string, options ...*Cmd) (string, error) {
+func Bash(scriptish string, options ...*Cmd) error {
 	scriptish = strings.Replace(scriptish, `"`, `\"`, -1)
 	scriptish = strings.Replace(scriptish, `\`, `\\`, -1)
-	return startAsync(false, `bash -c "`+scriptish+`"`, options...)
+	_, err := startAsync(false, false, `bash -c "`+scriptish+`"`, options...)
+	return err
+}
+
+// BashOutput is the same as Bash and it captures stdout and stderr.
+func BashOutput(scriptish string, options ...*Cmd) (string, error) {
+	scriptish = strings.Replace(scriptish, `"`, `\"`, -1)
+	scriptish = strings.Replace(scriptish, `\`, `\\`, -1)
+	return startAsync(false, true, `bash -c "`+scriptish+`"`, options...)
 }
 
 // Run runs a command and captures its output. `command` is parsed
 // for arguments. args is optional and unparsed.
-func Run(command string, options ...*Cmd) (string, error) {
-	return startAsync(false, command, options...)
+func Run(command string, options ...*Cmd) error {
+	_, err := startAsync(false, false, command, options...)
+	return err
+}
+
+// RunOutput is same as Run and it captures stdout and stderr.
+func RunOutput(command string, options ...*Cmd) (string, error) {
+	return startAsync(false, true, command, options...)
 }
 
 func mapToEnv(m map[string]string) []string {
@@ -69,7 +83,7 @@ func mergeEnv(pairs []string) []string {
 
 // startAsync starts a process async or sync based on the first flag. If it is an async
 // operation the process is tracked and killed if started again.
-func startAsync(isAsync bool, command string, options ...*Cmd) (output string, err error) {
+func startAsync(isAsync bool, isCaptureOutput bool, command string, options ...*Cmd) (output string, err error) {
 	//existing := spawnedProcesses[command]
 	argv := str.ToArgv(command)
 	executable := argv[0]
@@ -77,7 +91,7 @@ func startAsync(isAsync bool, command string, options ...*Cmd) (output string, e
 	isGoFile := strings.HasSuffix(executable, ".go")
 	if isGoFile {
 		// install the executable which compiles files
-		_, err = startAsync(false, "go install "+executable, options...)
+		_, err = startAsync(false, false, "go install "+executable, options...)
 		if err != nil {
 			return
 		}
@@ -112,9 +126,19 @@ func startAsync(isAsync bool, command string, options ...*Cmd) (output string, e
 	}
 
 	cmd.Stdin = os.Stdin
-	if isAsync {
+
+	var recorder bytes.Buffer
+	if isCaptureOutput {
+		outWrapper := newFileWrapper(os.Stdout, &recorder, "")
+		errWrapper := newFileWrapper(os.Stderr, &recorder, ansi.ColorCode("red+b"))
+		cmd.Stdout = outWrapper
+		cmd.Stderr = errWrapper
+	} else {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
+	}
+
+	if isAsync {
 		// kills previously spawned process (if exists)
 		killSpawned(command)
 		waitExit = true
@@ -133,13 +157,11 @@ func startAsync(isAsync bool, command string, options ...*Cmd) (output string, e
 		return "", nil
 	}
 
-	var recorder bytes.Buffer
-	outWrapper := newFileWrapper(os.Stdout, &recorder, "")
-	errWrapper := newFileWrapper(os.Stderr, &recorder, ansi.ColorCode("red+b"))
-	cmd.Stdout = outWrapper
-	cmd.Stderr = errWrapper
 	err = cmd.Run()
-	return recorder.String(), err
+	if isCaptureOutput {
+		return recorder.String(), err
+	}
+	return "", err
 }
 
 // Start starts an async command. If executable has suffix ".go" then it will
@@ -147,7 +169,7 @@ func startAsync(isAsync bool, command string, options ...*Cmd) (output string, e
 //
 // If Start is called with the same command it kills the previous process.
 func Start(command string, options ...*Cmd) {
-	_, err := startAsync(true, command, options...)
+	_, err := startAsync(true, false, command, options...)
 	if err != nil {
 		util.Error("Start", "%s\n%+v\n", command, err)
 	}

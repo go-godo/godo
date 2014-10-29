@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/mgutz/goa"
 	f "github.com/mgutz/goa/filter"
 	. "github.com/mgutz/gosu"
@@ -41,13 +39,15 @@ func Tasks(p *Project) {
 	})
 
 	p.Task("interactive", func() {
-		output, _ := Bash(`
+		Bash(`
 			echo name?
 			read name
 			echo hello $name
 		`)
-		fmt.Println(output)
-		Bash(`pwd`)
+	})
+
+	p.Task("whoami", func() {
+		Run("whoami")
 	})
 }
 
