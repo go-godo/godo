@@ -28,7 +28,7 @@ As an example, create a file **"tasks/Gosufile.go"** with this content
             Run('razor views')
         })
 
-        p.Task("server", D{"views"}, W{"**/*.go}, Debounce(3000), func() {
+        p.Task("server", D{"views"}, W{"**/*.go"}, Debounce(3000), func() {
             // Start recompiles and restarts on changes when watching
             Start("main.go", M{"Dir": "example"})
         })
