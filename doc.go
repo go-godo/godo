@@ -14,17 +14,17 @@
 //      )
 //
 //      func Tasks(p *Project) {
-//          p.Task("default", D{"hello, "views"})
+//          p.Task("default", D{"hello", "views"})
 //
 //          p.Task("hello", func() {
 //              Run(`bash -c "echo Hello $USER!"`)
 //          })
 //
 //          p.Task("views", "Compiles razor templates", W{"**/*.go.html"}, func(c *Context) {
-//              Run('razor views')
+//              Run(`razor views`)
 //          })
 //
-//          p.Task("server", D{"views"}, W{"**/*.go}, Debounce(3000), func() {
+//          p.Task("server", D{"views"}, W{"**/*.go"}, Debounce(3000), func() {
 //              // Start recompiles and restarts on changes when watching
 //              Start("main.go", M{"Dir": "example"})
 //          })
