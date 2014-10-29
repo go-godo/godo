@@ -1,6 +1,7 @@
 package gosu
 
 import (
+	"os"
 	"sort"
 	"testing"
 )
@@ -113,5 +114,13 @@ func TestCalculateWatchPaths(t *testing.T) {
 	}
 	if paths[0] != "." {
 		t.Error("Expected . got", paths[0])
+	}
+}
+
+func TestInheritedRunEnv(t *testing.T) {
+	os.Setenv("TEST_RUN_ENV", "fubar")
+	output, _ := Run(`bash -c "echo -n $TEST_RUN_ENV $FOO"`, M{"Env": []string{"FOO=bar", "BAH=baz"}})
+	if output != "fubar bar" {
+		t.Error("Environment was not inherited! Got", "XX"+output+"ZZ")
 	}
 }

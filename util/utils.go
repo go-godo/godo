@@ -54,7 +54,7 @@ func Template(src string, dest string, data map[string]interface{}) {
 		Panic("template", "Could not read file %s\n%v\n", src, err)
 	}
 
-	tpl := template.New("vagrantFile")
+	tpl := template.New("t")
 	tpl, err = tpl.Parse(string(content))
 	if err != nil {
 		Panic("template", "Could not parse template %s\n%v\n", src, err)

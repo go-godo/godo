@@ -1,17 +1,17 @@
 package gosu
 
 import (
+	"fmt"
 	"os"
-	//"time"
 	"sync"
 
-	//"github.com/mgutz/gosu/util"
 	flag "github.com/ogier/pflag"
 )
 
 var watching = flag.Bool("watch", false, "Watch task and dependencies")
 var help = flag.Bool("help", false, "View this usage screen")
 var verbose = flag.Bool("verbose", false, "View more info like which file changed")
+var version = flag.BoolP("version", "v", false, "Show version number")
 
 // DebounceMs is the default time (1500 ms) to debounce task events in watch mode.
 var DebounceMs int64
@@ -24,13 +24,17 @@ func init() {
 
 // Gosu runs a project of tasks.
 func Gosu(tasksFunc func(*Project)) {
-	project := NewProject(tasksFunc)
-
 	flag.Parse()
+
+	project := NewProject(tasksFunc)
 
 	if *help {
 		project.Usage()
 		os.Exit(0)
+	}
+
+	if *version {
+		fmt.Printf("gosu %s", Version)
 	}
 
 	// Run each task including their dependencies.

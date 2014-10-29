@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/mgutz/goa"
 	f "github.com/mgutz/goa/filter"
 	. "github.com/mgutz/gosu"
@@ -37,6 +39,11 @@ func Tasks(p *Project) {
 
 	p.Task("build", func() {
 		Run("go install", M{"Dir": "cmd/gosu"})
+	})
+
+	p.Task("interactive", func() {
+		output, _ := Run(`bash -c "echo name?; read name; echo hello $name"`)
+		fmt.Println(output)
 	})
 }
 
