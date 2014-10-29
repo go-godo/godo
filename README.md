@@ -30,7 +30,7 @@ As an example, create a file **"tasks/Gosufile.go"** with this content
 
         p.Task("server", D{"views"}, W{"**/*.go"}, Debounce(3000), func() {
             // Start recompiles and restarts on changes when watching
-            Start("main.go", M{"Dir": "example"})
+            Start("main.go")
         })
     }
 
