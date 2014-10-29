@@ -74,3 +74,17 @@ Task handlers
     func() {}           - Simple function handler
     func(c *Context) {} - Handler which accepts the current context
 
+Exec functions
+
+    // Runs a command and captures its output.
+    Run(command, options...)
+        // capture output of shell command
+        output, _ := Run(`bash -c "echo -n $HOME")
+        // run main executable inside of cmd/app and set environment var FOO
+        Run("main", &Cmd{Wd: "cmd/app", Env: []string{"FOO=bar")})
+
+    // Start an async command. If executable has suffix ".go" then it will
+    // be "go install"ed then executed. Use this for watching a server task.
+    Start(command, options...)
+
+

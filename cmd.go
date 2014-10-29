@@ -13,12 +13,20 @@ import (
 	"github.com/mgutz/str"
 )
 
+// Cmd are command options for Run and Start.
+type Cmd struct {
+	// Wd sets working directory
+	Wd string
+	// Env are additional environment vars to set.
+	Env []string
+}
+
 var spawnedProcesses = make(map[string]*os.Process)
 
-// Run is simple way to execute a CLI utility. `command` is parsed
+// Run runs a command and captures its output. `command` is parsed
 // for arguments. args is optional and unparsed.
-func Run(command string, options ...map[string]interface{}) (string, error) {
-	return StartAsync(false, command, options...)
+func Run(command string, options ...*Cmd) (string, error) {
+	return startAsync(false, command, options...)
 }
 
 func mapToEnv(m map[string]string) []string {
@@ -51,9 +59,9 @@ func mergeEnv(pairs []string) []string {
 	return mapToEnv(m)
 }
 
-// StartAsync starts a process async or sync based on the first flag. If it is an async
+// startAsync starts a process async or sync based on the first flag. If it is an async
 // operation the process is tracked and killed if started again.
-func StartAsync(isAsync bool, command string, options ...map[string]interface{}) (output string, err error) {
+func startAsync(isAsync bool, command string, options ...*Cmd) (output string, err error) {
 	//existing := spawnedProcesses[command]
 	argv := str.ToArgv(command)
 	executable := argv[0]
@@ -61,7 +69,7 @@ func StartAsync(isAsync bool, command string, options ...map[string]interface{})
 	isGoFile := strings.HasSuffix(executable, ".go")
 	if isGoFile {
 		// install the executable which compiles files
-		_, err = StartAsync(false, "go install "+executable, options...)
+		_, err = startAsync(false, "go install "+executable, options...)
 		if err != nil {
 			return
 		}
@@ -74,15 +82,14 @@ func StartAsync(isAsync bool, command string, options ...map[string]interface{})
 	}
 
 	var childEnv []string
+	// legacy support
 	if len(options) == 1 {
 		opts := options[0]
-		if opts["Dir"] != nil {
-			wd = opts["Dir"].(string)
+		if opts.Wd != "" {
+			wd = opts.Wd
 		}
-
-		vars, ok := opts["Env"].([]string)
-		if ok {
-			childEnv = mergeEnv(vars)
+		if opts.Env != nil {
+			childEnv = mergeEnv(opts.Env)
 		}
 	}
 	if isGoFile {
@@ -127,10 +134,12 @@ func StartAsync(isAsync bool, command string, options ...map[string]interface{})
 	return recorder.String(), err
 }
 
-// Start is a simple way to start a process or go file. If start is called with the same
-// command it kills the previous process.
-func Start(command string, options ...map[string]interface{}) {
-	_, err := StartAsync(true, command, options...)
+// Start starts an async command. If executable has suffix ".go" then it will
+// be "go install"ed then executed. Use this for watching a server task.
+//
+// If Start is called with the same command it kills the previous process.
+func Start(command string, options ...*Cmd) {
+	_, err := startAsync(true, command, options...)
 	if err != nil {
 		util.Error("Start", "%s\n%+v\n", command, err)
 	}
@@ -155,10 +164,4 @@ func killSpawned(command string) {
 		util.Error("Start", "Could not kill existing process %+v\n", process)
 		return
 	}
-	// _, err = process.Wait()
-	// if err != nil {
-	// 	util.Error("Start", "Error waiting %v\n", err)
-	// 	return
-	// }
-	// waitgroup.Done()
 }

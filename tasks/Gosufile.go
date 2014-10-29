@@ -32,13 +32,12 @@ func Tasks(p *Project) {
 		goa.Pipe(
 			f.Load("./README.md"),
 			f.Str(str.ReplaceF("--", "\n[godoc](https://godoc.org/github.com/mgutz/gosu)\n", 1)),
-			f.Str(str.BetweenF("", "## Usage")),
 			f.Write(),
 		)
 	})
 
 	p.Task("build", func() {
-		Run("go install", M{"Dir": "cmd/gosu"})
+		Run("go install", &Cmd{Wd: "cmd/gosu"})
 	})
 
 	p.Task("interactive", func() {
