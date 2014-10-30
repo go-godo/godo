@@ -1,4 +1,4 @@
 package gosu
 
 // Version is the current version
-var Version = "1.2.0"
+var Version = "2.0.0-pre"

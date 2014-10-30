@@ -19,7 +19,7 @@ var waitgroup sync.WaitGroup
 var waitExit bool
 
 func init() {
-	DebounceMs = 3000
+	DebounceMs = 2000
 }
 
 // Gosu runs a project of tasks.

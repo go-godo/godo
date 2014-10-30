@@ -114,36 +114,6 @@ func run(captureOutput bool, commandstr string, wd []In) (output string, err err
 	return cmd.run()
 }
 
-func mapToEnv(m map[string]string) []string {
-	env := make([]string, len(m))
-
-	i := 0
-	for k, v := range m {
-		env[i] = k + "=" + v
-		i++
-	}
-	return env
-}
-
-func mergeEnv(pairs []string) []string {
-	m := map[string]string{}
-
-	for _, e := range os.Environ() {
-		pair := strings.Split(e, "=")
-		m[pair[0]] = pair[1]
-	}
-
-	for _, kv := range pairs {
-		pair := strings.Split(kv, "=")
-		// ignore non key=value strings
-		if len(pair) == 2 {
-			m[pair[0]] = pair[1]
-		}
-	}
-
-	return mapToEnv(m)
-}
-
 func splitCommand(command string) (executable string, argv, env []string) {
 	argv = str.ToArgv(command)
 	for i, item := range argv {
@@ -187,10 +157,7 @@ func (gcmd *command) toCmd() (cmd *exec.Cmd, err error) {
 		cmd.Dir = gcmd.wd
 	}
 
-	if gcmd.env != nil {
-		cmd.Env = mergeEnv(gcmd.env)
-	}
-
+	cmd.Env = effectiveEnv(gcmd.env)
 	cmd.Stdin = os.Stdin
 
 	if gcmd.captureOutput {

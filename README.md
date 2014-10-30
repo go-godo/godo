@@ -27,19 +27,22 @@ As an example, create a file **tasks/Gosufile.go** with this content
     )
 
     func Tasks(p *Project) {
+        BaseEnv = `
+            GOPATH=./vendor:$GOPATH
+        `
+
         p.Task("default", D{"hello", "views"})
 
         p.Task("hello", func() {
             Bash(`
                 echo Hello $USER! \
                      A beautiful day to ya
+                printenv
             `)
         })
 
-        p.Task("views", "Compiles razor templates", W{"templates/**/*.go.html"}, func(c *Context) {
-            Inside("templates", func() {
-                Run("razor views")
-            })
+        p.Task("build", W{"**/*.go"}, func() {
+            Run("GOOS=linux GOARCH=amd64 go build", In{"cmd/app"})
         })
 
         p.Task("server", D{"views"}, W{"**/*.go"}, Debounce(3000), func() {
@@ -106,12 +109,10 @@ Run a bash script string and capture its output.
 
     output, err := BashOutput(`echo -n $USER`)
 
-Run main executable inside of cmd/app and set environment var FOO. Notice
+Run `go build` inside of cmd/app and set environment variables. Notice
 environment variables are set the same way as in a shell.
 
     Run(`GOOS=linux GOARCH=amd64 go build`)
-
-    Run("FOO=bar main", In{"cmd/app"})
 
 Run and capture output
 
@@ -129,4 +130,28 @@ If you need to run many commands in a directory
         Bash("...")
     })
 
+## Gosufile run-time environment
+
+Tasks often need to run in a known evironment. You can control
+the environment with these settings:
+
+    // Whether to inherit from parent's environment. Applies to all
+    // functions
+    InheritParentEnv = false
+
+    // This string is the base environment. Separate with whitespace or
+    // newlines.
+    Env = `
+        GOPATH=$GOPATH:./vendor
+    `
+
+    // Funcs can add or override environment variables as part of the
+    // command string
+    p.Task("build", func() {
+        Run("GOOS=linux GOARCH=amd64 go build" )
+    })
+
+The effective environment is: parent <- Env <- func's overrides
+
+Note: Interpolation of `$VARIABLE` is always from parent environment.
 

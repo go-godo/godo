@@ -177,3 +177,53 @@ func TestBash(t *testing.T) {
 		t.Error("Bash quoted string failed. Got", out)
 	}
 }
+
+func sliceContains(slice []string, val string) bool {
+	for _, it := range slice {
+		if it == val {
+			return true
+		}
+	}
+	return false
+}
+
+func TestEnvironment(t *testing.T) {
+	Env = `
+	USER=$USER:gosu
+	`
+	user := os.Getenv("USER")
+	env := effectiveEnv(nil)
+	if !sliceContains(env, "USER="+user+":gosu") {
+		t.Error("Environment interpolation failed")
+	}
+
+	InheritParentEnv = false
+	env = effectiveEnv(nil)
+	if len(env) != 1 {
+		t.Error("Disabling parent inheritance failed")
+	}
+	if !sliceContains(env, "USER="+user+":gosu") {
+		t.Error("Should have read parent var even if not inheriting")
+	}
+
+	// set back to defaults
+	Env = ""
+	InheritParentEnv = true
+
+	l := len(os.Environ())
+	env = effectiveEnv([]string{"USER=$USER:$USER:func"})
+	if !sliceContains(env, "USER="+user+":"+user+":func") {
+		t.Error("Should have been overriden by func environmnt")
+	}
+	if len(env) != l {
+		t.Error("Effective environment length changed")
+	}
+
+	env = effectiveEnv([]string{"GOSU_NEW_VAR=foo"})
+	if !sliceContains(env, "GOSU_NEW_VAR=foo") {
+		t.Error("Should have new var")
+	}
+	if len(env) != l+1 {
+		t.Error("Effective environment length should have increased by 1")
+	}
+}
