@@ -7,32 +7,34 @@
 //
 // As an example, create a file 'tasks/Gosufile.go' with this content
 //
-//      package main
+//    package main
 //
-//      import (
-//          . "github.com/mgutz/gosu"
-//      )
+//    import (
+//        . "github.com/mgutz/gosu"
+//    )
 //
-//      func Tasks(p *Project) {
-//          p.Task("default", D{"hello", "views"})
+//    func Tasks(p *Project) {
+//        Env = "GOPATH=.vendor:$GOPATH OTHER_VAR=val"
 //
-//          p.Task("hello", func() {
-//              Run(`bash -c "echo Hello $USER!"`)
-//          })
+//        p.Task("default", D{"hello", "build"})
 //
-//          p.Task("views", "Compiles razor templates", W{"**/*.go.html"}, func(c *Context) {
-//              Run("razor views")
-//          })
+//        p.Task("hello", func() {
+//            Bash("echo Hello $USER!")
+//        })
 //
-//          p.Task("server", D{"views"}, W{"**/*.go"}, Debounce(3000), func() {
-//              // Start recompiles and restarts on changes when watching
-//              Start("main.go", In{"example"})
-//          })
-//      }
+//        p.Task("build", W{"**/*.go"}, func() {
+//            Run("GOOS=linux GOARCH=amd64 go build", In{"cmd/gosu"})
+//        })
 //
-//      func main() {
-//          Gosu(Tasks)
-//      }
+//        p.Task("server", D{"views"}, W{"**/*.go"}, Debounce(3000), func() {
+//            // Start recompiles and restarts on changes when watching
+//            Start("main.go", In{"cmd/server"})
+//        })
+//    }
+//
+//    func main() {
+//        Gosu(Tasks)
+//    }
 //
 // To run "views" task from terminal
 //

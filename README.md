@@ -9,12 +9,11 @@ To install
 
     go get -u github.com/mgutz/gosu/cmd/gosu
 
-
 BREAKING CHANGES
 
-I apologize about the exec API changing so much. I will settle in the next
-couple of days and release a v2 on gopkg.in with a promise to maintain
-API compatbility for each version.
+I apologize about the exec API changing so much. I will settle on the API
+in the next couple of days and release a v2 on gopkg.in with a promise to
+maintain API compatbility for each version.
 
 ## Gosufile
 
@@ -27,27 +26,21 @@ As an example, create a file **tasks/Gosufile.go** with this content
     )
 
     func Tasks(p *Project) {
-        Env = `
-            GOPATH=.vendor:$GOPATH
-        `
+        Env = "GOPATH=.vendor:$GOPATH OTHER_VAR=val"
 
-        p.Task("default", D{"hello", "views"})
+        p.Task("default", D{"hello", "build"})
 
         p.Task("hello", func() {
-            Bash(`
-                echo Hello $USER! \
-                     A beautiful day to ya
-                printenv
-            `)
+            Bash("echo Hello $USER!")
         })
 
         p.Task("build", W{"**/*.go"}, func() {
-            Run("GOOS=linux GOARCH=amd64 go build", In{"cmd/app"})
+            Run("GOOS=linux GOARCH=amd64 go build", In{"cmd/gosu"})
         })
 
         p.Task("server", D{"views"}, W{"**/*.go"}, Debounce(3000), func() {
             // Start recompiles and restarts on changes when watching
-            Start("main.go", In{"example"})
+            Start("main.go", In{"cmd/server"})
         })
     }
 
@@ -55,8 +48,10 @@ As an example, create a file **tasks/Gosufile.go** with this content
         Gosu(Tasks)
     }
 
+
 To run "views" task from terminal
 
+    # from parent dir of tasks/
     gosu views
 
 To rerun "views" whenever any `*.go.html` file changes
@@ -69,7 +64,7 @@ To run the "default" task which runs "hello" and "views"
 
 Task names may add a "?" suffix meaning only run once even when watching
 
-    // build once regardless of number of dependees
+    // build once regardless of number of dependents
     p.Task("build?", func() {})
 
 Task options
@@ -134,16 +129,17 @@ If you need to run many commands in a directory
 
 Tasks often need to run in a known evironment.
 
-To specify whether to inherit from parent's environment, set `InheritParentEnv`.
-This setting defaults to true
+To specify whether to inherit from parent's process environment,
+set `InheritParentEnv`. This setting defaults to true
 
     InheritParentEnv = false
 
-To specify the base environment for your tasks, set `ENV`.
+To specify the base environment for your tasks, set `Env`.
 Separate with whitespace or newlines.
 
     Env = `
         GOPATH=.vendor:$GOPATH
+        SERVER__PORT=8000
     `
 
 Funcs can add or override environment variables as part of the command string.
@@ -154,5 +150,6 @@ Funcs can add or override environment variables as part of the command string.
 
 The effective environment is: parent (if inherited) <- Env <- func's overrides
 
-Note: Interpolation of `$VARIABLE` is always from parent environment.
+Note: Interpolation of `$VARIABLE` is always from parent environment even if
+`InheritParentEnv` is `false`.
 
