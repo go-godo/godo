@@ -27,8 +27,8 @@ As an example, create a file **tasks/Gosufile.go** with this content
     )
 
     func Tasks(p *Project) {
-        BaseEnv = `
-            GOPATH=./vendor:$GOPATH
+        Env = `
+            GOPATH=.vendor:$GOPATH
         `
 
         p.Task("default", D{"hello", "views"})
@@ -132,26 +132,27 @@ If you need to run many commands in a directory
 
 ## Gosufile run-time environment
 
-Tasks often need to run in a known evironment. You can control
-the environment with these settings:
+Tasks often need to run in a known evironment.
 
-    // Whether to inherit from parent's environment. Applies to all
-    // functions
+To specify whether to inherit from parent's environment, set `InheritParentEnv`.
+This setting defaults to true
+
     InheritParentEnv = false
 
-    // This string is the base environment. Separate with whitespace or
-    // newlines.
+To specify the base environment for your tasks, set `ENV`.
+Separate with whitespace or newlines.
+
     Env = `
-        GOPATH=$GOPATH:./vendor
+        GOPATH=.vendor:$GOPATH
     `
 
-    // Funcs can add or override environment variables as part of the
-    // command string
+Funcs can add or override environment variables as part of the command string.
+
     p.Task("build", func() {
         Run("GOOS=linux GOARCH=amd64 go build" )
     })
 
-The effective environment is: parent <- Env <- func's overrides
+The effective environment is: parent (if inherited) <- Env <- func's overrides
 
 Note: Interpolation of `$VARIABLE` is always from parent environment.
 
