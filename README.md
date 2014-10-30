@@ -11,7 +11,7 @@ To install
 
 ## Gosufile
 
-As an example, create a file **"tasks/Gosufile.go"** with this content
+As an example, create a file **tasks/Gosufile.go** with this content
 
     package main
 
@@ -24,9 +24,8 @@ As an example, create a file **"tasks/Gosufile.go"** with this content
 
         p.Task("hello", func() {
             Bash(`
-                echo Hello $USER!
-                echo A beautiful day \
-                    to ya
+                echo Hello $USER! \
+                     A beautiful day to ya
             `)
         })
 
@@ -34,7 +33,6 @@ As an example, create a file **"tasks/Gosufile.go"** with this content
             Inside("templates", func() {
                 Run("razor views")
             })
-            Bash(`pwd`)
         })
 
         p.Task("server", D{"views"}, W{"**/*.go"}, Debounce(3000), func() {
@@ -85,32 +83,31 @@ Task handlers
 
 ## Exec functions
 
-
-Gosu provides simple exec functions. They are included as part of Gosu package because they
-are frequently used in tasks. Moreover, Gosu tracks the PID of the `Start()` async function
+Gosu provides simple exec functions. They are included as part of Gosu package as they
+are frequently used in tasks. Moreover, Gosu tracks the pid of the `Start()` async function
 to restart an application gracefully.
 
-Run a bash string. Can be multine line with continutation.
+Run a bash script string. The script can be multine line with continutation.
 
     Bash(`
-        echo -n $USERj
+        echo -n $USER
         echo some really long \
             command
     `)
 
-Run a bash string script and capture its output.
+Run a bash script string and capture its output.
 
     output, err := BashOutput(`echo -n $USER`)
 
-Run main executable inside of cmd/app and set environment var FOO
+Run main executable inside of cmd/app and set environment var FOO for the command.
 
     Run("main", &Cmd{Wd: "cmd/app", Env: []string{"FOO=bar"})
 
 Run and capture output
 
-    output, err := RunOutput('whoami')
+    output, err := RunOutput("whoami")
 
 Start an async command. If executable has suffix ".go" then it will be "go install"ed then executed.
 Use this for watching a server task.
 
-    Start("main.go", &Cmd{Wd: "cmd/app")
+    Start("main.go", &Cmd{Wd: "cmd/app"})

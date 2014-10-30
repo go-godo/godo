@@ -196,7 +196,7 @@ func killSpawned(command string) {
 	}
 }
 
-// Inside temporarily changes the working directory and restores it when lambda is
+// Inside temporarily changes the working directory and restores it when lambda
 // finishes.
 func Inside(dir string, lambda func()) error {
 	olddir, err := os.Getwd()

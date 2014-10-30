@@ -5,7 +5,7 @@
 //
 //      go get -u github.com/mgutz/gosu/cmd/gosu
 //
-// As an example, create a file 'tasks/Gosufile.go' wit this content
+// As an example, create a file 'tasks/Gosufile.go' with this content
 //
 //      package main
 //
@@ -21,7 +21,7 @@
 //          })
 //
 //          p.Task("views", "Compiles razor templates", W{"**/*.go.html"}, func(c *Context) {
-//              Run(`razor views`)
+//              Run("razor views")
 //          })
 //
 //          p.Task("server", D{"views"}, W{"**/*.go"}, Debounce(3000), func() {
@@ -69,20 +69,5 @@
 //
 //      func() {}           - Simple function handler
 //      func(c *Context) {} - Handler which accepts the current context
-//
-// Exec functions
-//
-//      Run(command, options...) - Runs a command and captures its output
-//
-//          output, _ := Run(`bash -c "echo -n $HOME")
-//
-//          // Run main executable setting the work directory and setting
-//          // environment variable.
-//          Run("main", &Cmd{Wd: "cmd/app", Env: []string{"FOO=bar")})
-//
-//		Start(command, options...) - Start an async command. If executable
-//                                   has suffix ".go" then it will be installed
-//                                   then executed. Use this for watching
-//                                   a server task.
 
 package gosu
