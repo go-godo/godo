@@ -35,7 +35,7 @@ func Tasks(p *Project) {
 	})
 
 	p.Task("build", func() {
-		Run("go install", &Cmd{Wd: "cmd/gosu"})
+		Run("go install", In{"cmd/gosu"})
 	})
 
 	p.Task("interactive", func() {

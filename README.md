@@ -9,6 +9,13 @@ To install
 
     go get -u github.com/mgutz/gosu/cmd/gosu
 
+
+BREAKING CHANGES
+
+I apologize about the exec API changing so much. I will settle in the next
+couple of days and release a v2 on gopkg.in with a promise to maintain
+API compatbility for each version.
+
 ## Gosufile
 
 As an example, create a file **tasks/Gosufile.go** with this content
@@ -37,7 +44,7 @@ As an example, create a file **tasks/Gosufile.go** with this content
 
         p.Task("server", D{"views"}, W{"**/*.go"}, Debounce(3000), func() {
             // Start recompiles and restarts on changes when watching
-            Start("main.go", &Cmd{Wd: "example"})
+            Start("main.go", In{"example"})
         })
     }
 
@@ -99,9 +106,12 @@ Run a bash script string and capture its output.
 
     output, err := BashOutput(`echo -n $USER`)
 
-Run main executable inside of cmd/app and set environment var FOO for the command.
+Run main executable inside of cmd/app and set environment var FOO. Notice
+environment variables are set the same way as in a shell.
 
-    Run("main", &Cmd{Wd: "cmd/app", Env: []string{"FOO=bar"})
+    Run(`GOOS=linux GOARCH=amd64 go build`)
+
+    Run("FOO=bar main", In{"cmd/app"})
 
 Run and capture output
 
@@ -110,4 +120,13 @@ Run and capture output
 Start an async command. If executable has suffix ".go" then it will be "go install"ed then executed.
 Use this for watching a server task.
 
-    Start("main.go", &Cmd{Wd: "cmd/app"})
+    Start("main.go", In{"cmd/app"})
+
+If you need to run many commands in a directory
+
+    Inside("somedir", func() {
+        Run("...")
+        Bash("...")
+    })
+
+

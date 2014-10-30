@@ -121,9 +121,9 @@ func TestCalculateWatchPaths(t *testing.T) {
 
 func TestInheritedRunEnv(t *testing.T) {
 	os.Setenv("TEST_RUN_ENV", "fubar")
-	output, _ := RunOutput(`bash -c "echo -n $TEST_RUN_ENV $FOO"`, &Cmd{Env: []string{"FOO=bar", "BAH=baz"}})
+	output, _ := RunOutput(`FOO=bar BAH=baz bash -c "echo -n $TEST_RUN_ENV $FOO"`)
 	if output != "fubar bar" {
-		t.Error("Environment was not inherited! Got", "XX"+output+"ZZ")
+		t.Error("Environment was not inherited! Got", output)
 	}
 }
 
@@ -161,5 +161,19 @@ func TestBash(t *testing.T) {
 	`)
 	if out != "foobar" {
 		t.Error("Bash line continuation failed. Got", out)
+	}
+
+	out, _ = BashOutput(`
+		echo -n "foobar"
+	`)
+	if out != "foobar" {
+		t.Error("Bash quotes failed. Got", out)
+	}
+
+	out, _ = BashOutput(`
+		echo -n "fo\"obar"
+	`)
+	if out != "fo\"obar" {
+		t.Error("Bash quoted string failed. Got", out)
 	}
 }

@@ -26,7 +26,7 @@
 //
 //          p.Task("server", D{"views"}, W{"**/*.go"}, Debounce(3000), func() {
 //              // Start recompiles and restarts on changes when watching
-//              Start("main.go", &Cmd{Wd: "example"})
+//              Start("main.go", In{"example"})
 //          })
 //      }
 //

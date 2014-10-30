@@ -13,42 +13,105 @@ import (
 	"github.com/mgutz/str"
 )
 
-// Cmd are command options for Run and Start.
-type Cmd struct {
-	// Wd sets working directory
-	Wd string
-	// Env are additional environment vars to set.
-	Env []string
-}
+// In is used by Bash(), Run() and Start() to set the working directory
+type In []string
 
 var spawnedProcesses = make(map[string]*os.Process)
 
-// Bash executes a bash string. Use backticks for multiline. To execute as shell script,
-// use Run("bash script.sh")
-func Bash(scriptish string, options ...*Cmd) error {
-	scriptish = strings.Replace(scriptish, `"`, `\"`, -1)
-	scriptish = strings.Replace(scriptish, `\`, `\\`, -1)
-	_, err := startAsync(false, false, `bash -c "`+scriptish+`"`, options...)
+// Bash executes a bash script (string) with an option to set
+// the working directory.
+func Bash(script string, wd ...In) error {
+	_, err := bash(false, script, wd)
 	return err
 }
 
 // BashOutput is the same as Bash and it captures stdout and stderr.
-func BashOutput(scriptish string, options ...*Cmd) (string, error) {
-	scriptish = strings.Replace(scriptish, `"`, `\"`, -1)
-	scriptish = strings.Replace(scriptish, `\`, `\\`, -1)
-	return startAsync(false, true, `bash -c "`+scriptish+`"`, options...)
+func BashOutput(script string, wd ...In) (string, error) {
+	return bash(true, script, wd)
 }
 
-// Run runs a command and captures its output. `command` is parsed
-// for arguments. args is optional and unparsed.
-func Run(command string, options ...*Cmd) error {
-	_, err := startAsync(false, false, command, options...)
+// Run runs a command with an an option to set the working directory.
+func Run(commandstr string, wd ...In) error {
+	_, err := run(false, commandstr, wd)
 	return err
 }
 
 // RunOutput is same as Run and it captures stdout and stderr.
-func RunOutput(command string, options ...*Cmd) (string, error) {
-	return startAsync(false, true, command, options...)
+func RunOutput(commandstr string, wd ...In) (string, error) {
+	return run(true, commandstr, wd)
+}
+
+// Start starts an async command. If executable has suffix ".go" then it will
+// be "go install"ed then executed. Use this for watching a server task.
+//
+// If Start is called with the same command it kills the previous process.
+//
+// The working directory is optional.
+func Start(commandstr string, wd ...In) error {
+	dir, err := getWd(wd)
+	if err != nil {
+		return err
+	}
+
+	executable, argv, env := splitCommand(commandstr)
+	isGoFile := strings.HasSuffix(executable, ".go")
+	if isGoFile {
+		err = Run("go install", wd...)
+		if err != nil {
+			return err
+		}
+		executable = path.Base(dir)
+	}
+
+	cmd := &command{
+		executable: executable,
+		wd:         dir,
+		env:        env,
+		argv:       argv,
+	}
+	return cmd.runAsync()
+}
+
+// Bash executes a bash string. Use backticks for multiline. To execute as shell script,
+// use Run("bash script.sh")
+func bash(captureOutput bool, script string, wd []In) (output string, err error) {
+	dir, err := getWd(wd)
+	if err != nil {
+		return
+	}
+
+	gcmd := &command{
+		executable:    "bash",
+		argv:          []string{"-c", script},
+		wd:            dir,
+		captureOutput: captureOutput,
+	}
+
+	return gcmd.run()
+}
+
+func getWd(wd []In) (string, error) {
+	if len(wd) == 1 {
+		return wd[0][0], nil
+	}
+	return os.Getwd()
+}
+
+func run(captureOutput bool, commandstr string, wd []In) (output string, err error) {
+	dir, err := getWd(wd)
+	if err != nil {
+		return
+	}
+	executable, argv, env := splitCommand(commandstr)
+
+	cmd := &command{
+		executable:    executable,
+		wd:            dir,
+		env:           env,
+		argv:          argv,
+		captureOutput: captureOutput,
+	}
+	return cmd.run()
 }
 
 func mapToEnv(m map[string]string) []string {
@@ -81,48 +144,144 @@ func mergeEnv(pairs []string) []string {
 	return mapToEnv(m)
 }
 
+func splitCommand(command string) (executable string, argv, env []string) {
+	argv = str.ToArgv(command)
+	for i, item := range argv {
+		if strings.Contains(item, "=") {
+			if env == nil {
+				env = []string{item}
+				continue
+			}
+			env = append(env, item)
+		} else {
+			executable = item
+			argv = argv[i+1:]
+			return
+		}
+	}
+
+	executable = argv[0]
+	argv = argv[1:]
+	return
+}
+
+type command struct {
+	executable    string
+	argv          []string
+	env           []string
+	wd            string
+	captureOutput bool
+	recorder      bytes.Buffer
+}
+
+func (gcmd *command) hash() string {
+	if len(gcmd.argv) > 0 {
+		return gcmd.executable + strings.Join(gcmd.argv, ",")
+	}
+	return gcmd.executable
+}
+
+func (gcmd *command) toCmd() (cmd *exec.Cmd, err error) {
+	cmd = exec.Command(gcmd.executable, gcmd.argv...)
+	if gcmd.wd != "" {
+		cmd.Dir = gcmd.wd
+	}
+
+	if gcmd.env != nil {
+		cmd.Env = mergeEnv(gcmd.env)
+	}
+
+	cmd.Stdin = os.Stdin
+
+	if gcmd.captureOutput {
+		outWrapper := newFileWrapper(os.Stdout, &gcmd.recorder, "")
+		errWrapper := newFileWrapper(os.Stderr, &gcmd.recorder, ansi.ColorCode("red+b"))
+		cmd.Stdout = outWrapper
+		cmd.Stderr = errWrapper
+	} else {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	}
+	return cmd, nil
+}
+
+func (gcmd *command) run() (output string, err error) {
+
+	cmd, err := gcmd.toCmd()
+	if err != nil {
+		return
+	}
+
+	err = cmd.Run()
+	if gcmd.captureOutput {
+		return gcmd.recorder.String(), err
+	}
+	return "", err
+}
+
+func (gcmd *command) runAsync() (err error) {
+	cmd, err := gcmd.toCmd()
+	if err != nil {
+		return
+	}
+
+	id := gcmd.hash()
+
+	// kills previously spawned process (if exists)
+	killSpawned(id)
+	waitExit = true
+	waitgroup.Add(1)
+	go func() {
+		err = cmd.Start()
+		if err != nil {
+			return
+		}
+		spawnedProcesses[id] = cmd.Process
+		c := make(chan error, 1)
+		c <- cmd.Wait()
+		_ = <-c
+		waitgroup.Done()
+	}()
+	return nil
+}
+
 // startAsync starts a process async or sync based on the first flag. If it is an async
 // operation the process is tracked and killed if started again.
-func startAsync(isAsync bool, isCaptureOutput bool, command string, options ...*Cmd) (output string, err error) {
-	//existing := spawnedProcesses[command]
-	argv := str.ToArgv(command)
-	executable := argv[0]
+func startAsync(isAsync bool, isCaptureOutput bool, command string, wd ...string) (output string, err error) {
+	// argv := str.ToArgv(command)
+	// executable := argv[0]
+	// argv = argv[1:]
+	executable, argv, childEnv := splitCommand(command)
 
 	isGoFile := strings.HasSuffix(executable, ".go")
 	if isGoFile {
 		// install the executable which compiles files
-		_, err = startAsync(false, false, "go install "+executable, options...)
+		_, err = startAsync(false, false, "go install "+executable, wd...)
 		if err != nil {
 			return
 		}
 	}
 
-	wd, err := os.Getwd()
+	cwd, err := os.Getwd()
 	if err != nil {
 		util.Error("Start", "Could not get work directory\n")
 		return
 	}
 
-	var childEnv []string
 	// legacy support
-	if len(options) == 1 {
-		opts := options[0]
-		if opts.Wd != "" {
-			wd = opts.Wd
-		}
-		if opts.Env != nil {
-			childEnv = mergeEnv(opts.Env)
-		}
-	}
-	if isGoFile {
-		executable = path.Base(wd)
+	//var childEnv []string
+	if len(wd) == 1 {
+		cwd = string(wd[0])
 	}
 
-	argv = argv[1:]
+	if isGoFile {
+		executable = path.Base(cwd)
+	}
+
 	cmd := exec.Command(executable, argv...)
-	cmd.Dir = wd
+	cmd.Dir = cwd
 	if childEnv != nil {
-		cmd.Env = childEnv
+		cmd.Env = mergeEnv(childEnv)
 	}
 
 	cmd.Stdin = os.Stdin
@@ -162,17 +321,6 @@ func startAsync(isAsync bool, isCaptureOutput bool, command string, options ...*
 		return recorder.String(), err
 	}
 	return "", err
-}
-
-// Start starts an async command. If executable has suffix ".go" then it will
-// be "go install"ed then executed. Use this for watching a server task.
-//
-// If Start is called with the same command it kills the previous process.
-func Start(command string, options ...*Cmd) {
-	_, err := startAsync(true, false, command, options...)
-	if err != nil {
-		util.Error("Start", "%s\n%+v\n", command, err)
-	}
 }
 
 func toInt(s string) int {
