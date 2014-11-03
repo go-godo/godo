@@ -1,16 +1,15 @@
-// Package gosu is a project build tool for Go in the spirit of Rake, Grunt,
-// Gulp and others. Gosu supports watching, tasks and restarting go apps.
+// Package godo is a task runner, file watcher in the spirit of Rake, Gulp ...
 //
 // To install
 //
-//      go get -u github.com/mgutz/gosu/cmd/gosu
+//      go get -u gopkg.in/godo.v1/cmd/godo
 //
-// As an example, create a file 'tasks/Gosufile.go' with this content
+// As an example, create a file 'tasks/Godofile.go' with this content
 //
 //    package main
 //
 //    import (
-//        . "github.com/mgutz/gosu"
+//        . "gokpkg.in/godo.v1"
 //    )
 //
 //    func Tasks(p *Project) {
@@ -23,7 +22,7 @@
 //        })
 //
 //        p.Task("build", W{"**/*.go"}, func() {
-//            Run("GOOS=linux GOARCH=amd64 go build", In{"cmd/gosu"})
+//            Run("GOOS=linux GOARCH=amd64 go build", In{"cmd/godo"})
 //        })
 //
 //        p.Task("server", D{"views"}, W{"**/*.go"}, Debounce(3000), func() {
@@ -33,20 +32,20 @@
 //    }
 //
 //    func main() {
-//        Gosu(Tasks)
+//        Godo(Tasks)
 //    }
 //
 // To run "views" task from terminal
 //
-//      gosu views
+//      godo views
 //
 // To rerun "views" whenever any `*.go.html` file changes
 //
-//      gosu views --watch
+//      godo views --watch
 //
 // To run the "default" task which runs "hello" and "views"
 //
-//      gosu
+//      godo
 //
 // Task names may add a "?" suffix to indicate run only once
 //
@@ -72,4 +71,4 @@
 //      func() {}           - Simple function handler
 //      func(c *Context) {} - Handler which accepts the current context
 
-package gosu
+package godo

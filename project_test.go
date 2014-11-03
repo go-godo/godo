@@ -1,4 +1,4 @@
-package gosu
+package godo
 
 import (
 	"io/ioutil"
@@ -189,11 +189,11 @@ func sliceContains(slice []string, val string) bool {
 
 func TestEnvironment(t *testing.T) {
 	Env = `
-	USER=$USER:gosu
+	USER=$USER:godo
 	`
 	user := os.Getenv("USER")
 	env := effectiveEnv(nil)
-	if !sliceContains(env, "USER="+user+":gosu") {
+	if !sliceContains(env, "USER="+user+":godo") {
 		t.Error("Environment interpolation failed")
 	}
 
@@ -202,7 +202,7 @@ func TestEnvironment(t *testing.T) {
 	if len(env) != 1 {
 		t.Error("Disabling parent inheritance failed")
 	}
-	if !sliceContains(env, "USER="+user+":gosu") {
+	if !sliceContains(env, "USER="+user+":godo") {
 		t.Error("Should have read parent var even if not inheriting")
 	}
 

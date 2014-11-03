@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/mgutz/gosu"
-	"github.com/mgutz/gosu/util"
+	"github.com/go-godo/godo"
+	"github.com/go-godo/godo/util"
 	"github.com/mgutz/str"
 )
 
@@ -34,10 +34,10 @@ func isPackageMain(data []byte) bool {
 }
 
 func main() {
-	gosuFiles := []string{"Gosufile.go", "tasks/Gosufile.go"}
+	godoFiles := []string{"Godofile.go", "tasks/Godofile.go"}
 	src := ""
 	rel := ""
-	for _, filename := range gosuFiles {
+	for _, filename := range godoFiles {
 		rel = filename
 		filename, err := filepath.Abs(filename)
 		if err != nil {
@@ -58,7 +58,7 @@ func main() {
 	cmd := "go run " + src + " " + strings.Join(os.Args[1:], " ")
 	//log.Printf("DBG %s\n", cmd)
 	// errors are displayed by tasks
-	gosu.Run(cmd)
+	godo.Run(cmd)
 }
 
 func buildMain(src string) string {
@@ -71,7 +71,7 @@ func buildMain(src string) string {
 			msg := `%s is not runnable. Rename package OR make it runnable by adding
 
     func main() {
-        gosu.Gosu(Tasks)
+        godo.Godo(Tasks)
     }
 `
 			fmt.Printf(msg, src)
@@ -81,11 +81,11 @@ func buildMain(src string) string {
 		template := `
 	        package main
 	        import (
-	            "github.com/mgutz/gosu"
+	            "github.com/go-godo/godo"
 	            pkg "{{package}}"
 	        )
 	        func main() {
-	            gosu.Gosu(pkg.Tasks)
+	            godo.Godo(pkg.Tasks)
 	        }
 	    `
 		packageName, err := util.PackageName(src)
@@ -96,12 +96,12 @@ func buildMain(src string) string {
 			"package": filepath.ToSlash(packageName),
 		})
 		//log.Println("DBG template", code)
-		tempDir, err := ioutil.TempDir("", "gosu")
+		tempDir, err := ioutil.TempDir("", "godo")
 		if err != nil {
 			panic("Could not create temp directory")
 		}
 		//log.Printf("code\n %s\n", code)
-		tempFile = filepath.Join(tempDir, "Gosufile_main.go")
+		tempFile = filepath.Join(tempDir, "Godofile_main.go")
 		err = ioutil.WriteFile(tempFile, []byte(code), 0644)
 		if err != nil {
 			log.Panicf("Could not write temp file %s\n", tempFile)

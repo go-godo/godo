@@ -1,4 +1,4 @@
-package gosu
+package godo
 
 // Dependencies are tasks which must run before a task.
 type Dependencies []string

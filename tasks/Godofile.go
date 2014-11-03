@@ -1,16 +1,16 @@
 package main
 
 import (
+	. "github.com/go-godo/godo"
 	"github.com/mgutz/goa"
 	f "github.com/mgutz/goa/filter"
-	. "github.com/mgutz/gosu"
 	"github.com/mgutz/str"
 )
 
 // Tasks is local project.
 func Tasks(p *Project) {
 
-	p.Task("dist", D{"lint"})
+	p.Task("dist", D{"test", "lint"})
 
 	p.Task("install", func() {
 		Run("go get github.com/golang/lint/golint")
@@ -29,13 +29,17 @@ func Tasks(p *Project) {
 		// add godoc
 		goa.Pipe(
 			f.Load("./README.md"),
-			f.Str(str.ReplaceF("--", "\n[godoc](https://godoc.org/github.com/mgutz/gosu)\n", 1)),
+			f.Str(str.ReplaceF("--", "\n[godoc](https://godoc.org/github.com/go-godo/godo)\n", 1)),
 			f.Write(),
 		)
 	})
 
+	p.Task("test", func() {
+		Run("go test")
+	})
+
 	p.Task("build", func() {
-		Run("go install", In{"cmd/gosu"})
+		Run("go install", In{"cmd/godo"})
 	})
 
 	p.Task("interactive", func() {
@@ -52,5 +56,5 @@ func Tasks(p *Project) {
 }
 
 func main() {
-	Gosu(Tasks)
+	Godo(Tasks)
 }

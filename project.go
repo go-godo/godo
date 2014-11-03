@@ -1,4 +1,4 @@
-package gosu
+package godo
 
 import (
 	"fmt"
@@ -12,8 +12,8 @@ import (
 
 	flag "github.com/ogier/pflag"
 
-	"github.com/mgutz/gosu/util"
-	"github.com/mgutz/gosu/watcher"
+	"github.com/go-godo/godo/util"
+	"github.com/go-godo/godo/watcher"
 	"github.com/mgutz/str"
 )
 
@@ -114,7 +114,7 @@ func (project *Project) run(name string, logName string, e *watcher.FileEvent) e
 
 // Usage prints usage about the app and tasks.
 func (project *Project) Usage() {
-	fmt.Printf("gosu %s\n", Version)
+	fmt.Printf("godo %s\n", Version)
 	fmt.Printf("Usage: %s [flags] [task...]\n\n", path.Base(os.Args[0]))
 	flag.PrintDefaults()
 	fmt.Printf("\nTasks\n\n")

@@ -1,7 +1,7 @@
-package gosu
+package godo
 
 import (
-	"github.com/mgutz/gosu/watcher"
+	"github.com/go-godo/godo/watcher"
 	"gopkg.in/fsnotify.v1"
 )
 

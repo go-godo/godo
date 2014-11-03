@@ -1,9 +1,9 @@
 .PHONY: build get
 
 build:
-	@cd cmd/gosu && go install
+	@cd cmd/godo && go install
 
 get:
-	@go get -u github.com/mgutz/gosu
-	@go get -u github.com/mgutz/gosu/cmd/gosu
+	@go get -u github.com/go-godo/godo
+	@go get -u github.com/go-godo/godo/cmd/godo
 

@@ -1,12 +1,12 @@
-package gosu
+package godo
 
 import (
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/mgutz/gosu/util"
-	"github.com/mgutz/gosu/watcher"
+	"github.com/go-godo/godo/util"
+	"github.com/go-godo/godo/watcher"
 )
 
 // TaskFunction is the signature of the function used to define a type.

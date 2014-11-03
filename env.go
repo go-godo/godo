@@ -1,4 +1,4 @@
-package gosu
+package godo
 
 import (
 	"os"

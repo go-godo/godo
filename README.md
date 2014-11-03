@@ -1,28 +1,22 @@
-# gosu
+# godo
 
-[godoc](https://godoc.org/github.com/mgutz/gosu)
+[godoc](https://godoc.org/github.com/go-godo/godo)
 
-gosu is a task runner and file watcher for golang in the spirit of
+godo is a task runner and file watcher for golang in the spirit of
 rake, gulp.
 
 To install
 
-    go get -u github.com/mgutz/gosu/cmd/gosu
+    go get -u gopkg.in/godo.v1/cmd/godo
 
-BREAKING CHANGES
+## Godofile
 
-I apologize about the exec API changing so much. I will settle on the API
-in the next couple of days and release a v2 on gopkg.in with a promise to
-maintain API compatbility for each version.
-
-## Gosufile
-
-As an example, create a file **tasks/Gosufile.go** with this content
+As an example, create a file **tasks/Godofile.go** with this content
 
     package main
 
     import (
-        . "github.com/mgutz/gosu"
+        . "gopkg.in/godo.v1"
     )
 
     func Tasks(p *Project) {
@@ -35,7 +29,11 @@ As an example, create a file **tasks/Gosufile.go** with this content
         })
 
         p.Task("build", W{"**/*.go"}, func() {
-            Run("GOOS=linux GOARCH=amd64 go build", In{"cmd/gosu"})
+            Run("GOOS=linux GOARCH=amd64 go build", In{"cmd/server"})
+        })
+
+        p.Task("views", W{"templates/**/*.go.html"}, func() {
+            Run("razor templates")
         })
 
         p.Task("server", D{"views"}, W{"**/*.go"}, Debounce(3000), func() {
@@ -45,22 +43,21 @@ As an example, create a file **tasks/Gosufile.go** with this content
     }
 
     func main() {
-        Gosu(Tasks)
+        Godo(Tasks)
     }
 
 
-To run "views" task from terminal
+To run "server" task from parent dir of `tasks/`
 
-    # from parent dir of tasks/
-    gosu views
+    godo server
 
-To rerun "views" whenever any `*.go.html` file changes
+To rerun "server" and its dependencies whenever any `*.go.html`  or `*.go` file changes
 
-    gosu views --watch
+    godo server --watch
 
 To run the "default" task which runs "hello" and "views"
 
-    gosu
+    godo
 
 Task names may add a "?" suffix meaning only run once even when watching
 
@@ -88,9 +85,9 @@ Task handlers
 
 ## Exec functions
 
-Gosu provides simple exec functions. They are included as part of Gosu package as they
-are frequently used in tasks. Moreover, Gosu tracks the pid of the `Start()` async function
-to restart an application gracefully.
+### Bash
+
+Bash functions uses the bash executable and thus may not run on all OS.
 
 Run a bash script string. The script can be multine line with continutation.
 
@@ -104,6 +101,8 @@ Run a bash script string and capture its output.
 
     output, err := BashOutput(`echo -n $USER`)
 
+### Run
+
 Run `go build` inside of cmd/app and set environment variables. Notice
 environment variables are set the same way as in a shell.
 
@@ -113,19 +112,27 @@ Run and capture output
 
     output, err := RunOutput("whoami")
 
+
+### Start
+
+Godo tracks the pid of the `Start()` async function to restart an application gracefully.
+
 Start an async command. If executable has suffix ".go" then it will be "go install"ed then executed.
 Use this for watching a server task.
 
     Start("main.go", In{"cmd/app"})
 
-If you need to run many commands in a directory
+### Inside
+
+If you need to run many commands in a directory, use `Inside` instead of
+the `In` options.
 
     Inside("somedir", func() {
         Run("...")
         Bash("...")
     })
 
-## Gosufile run-time environment
+## Godofile run-time environment
 
 Tasks often need to run in a known evironment.
 
@@ -139,16 +146,20 @@ Separate with whitespace or newlines.
 
     Env = `
         GOPATH=.vendor:$GOPATH
-        SERVER__PORT=8000
+        PG_USER="developer"
     `
 
-Funcs can add or override environment variables as part of the command string.
+Functions can add or override environment variables as part of the command string.
+Note that environment variables are set similar to how you would set them in
+a shell; however, the `Run` and `Start` functions do not use a shell.
 
     p.Task("build", func() {
         Run("GOOS=linux GOARCH=amd64 go build" )
     })
 
-The effective environment is: parent (if inherited) <- Env <- func's overrides
+The effective environment for `Run` or `Start` is: `parent (if inherited) <- Env <- func overrides`
+
+The effective environment for `Bash` is: `parent (if inherited) <- Env`
 
 Note: Interpolation of `$VARIABLE` is always from parent environment even if
 `InheritParentEnv` is `false`.

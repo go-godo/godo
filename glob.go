@@ -1,4 +1,4 @@
-package gosu
+package godo
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/MichaelTJones/walk"
-	"github.com/mgutz/gosu/util"
+	"github.com/go-godo/godo/util"
 )
 
 const (

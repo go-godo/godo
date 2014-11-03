@@ -1,4 +1,4 @@
-package gosu
+package godo
 
 import (
 	"fmt"
@@ -22,8 +22,8 @@ func init() {
 	DebounceMs = 2000
 }
 
-// Gosu runs a project of tasks.
-func Gosu(tasksFunc func(*Project)) {
+// Godo runs a project of tasks.
+func Godo(tasksFunc func(*Project)) {
 	flag.Parse()
 
 	project := NewProject(tasksFunc)
@@ -34,7 +34,7 @@ func Gosu(tasksFunc func(*Project)) {
 	}
 
 	if *version {
-		fmt.Printf("gosu %s", Version)
+		fmt.Printf("godo %s", Version)
 	}
 
 	// Run each task including their dependencies.
