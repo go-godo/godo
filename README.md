@@ -20,7 +20,7 @@ As an example, create a file **tasks/Godofile.go** with this content
     )
 
     func Tasks(p *Project) {
-        Env = "GOPATH=.vendor:$GOPATH OTHER_VAR=val"
+        Env = "GOPATH=.vendor:$GOPATH PG_PASSWORD=dev"
 
         p.Task("default", D{"hello", "build"})
 
@@ -59,7 +59,7 @@ To run the "default" task which runs "hello" and "views"
 
     godo
 
-Task names may add a "?" suffix meaning only run once even when watching
+Task names may add a "?" suffix to execute only once even when watching
 
     // build once regardless of number of dependents
     p.Task("build?", func() {})
@@ -75,7 +75,7 @@ Task options
         *      - match any non-separator char
         ?      - match a single non-separator char
         **/    - match any directory, start of pattern only
-        /**    - match any this directory, end of pattern only
+        /**    - match any in this directory, end of pattern only
         !      - removes files from resultset, start of pattern only
 
 Task handlers
@@ -87,7 +87,7 @@ Task handlers
 
 ### Bash
 
-Bash functions uses the bash executable and thus may not run on all OS.
+Bash functions uses the bash executable and may not run on all OS.
 
 Run a bash script string. The script can be multine line with continutation.
 
@@ -97,44 +97,40 @@ Run a bash script string. The script can be multine line with continutation.
             command
     `)
 
-Run a bash script string and capture its output.
+Run a bash script and capture STDOUT and STDERR.
 
     output, err := BashOutput(`echo -n $USER`)
 
 ### Run
 
-Run `go build` inside of cmd/app and set environment variables. Notice
-environment variables are set the same way as in a shell.
+Run `go build` inside of cmd/app and set environment variables.
 
-    Run(`GOOS=linux GOARCH=amd64 go build`)
+    Run(`GOOS=linux GOARCH=amd64 go build`, In{"cmd/app"})
 
-Run and capture output
+Run and capture STDOUT and STDERR
 
     output, err := RunOutput("whoami")
 
-
 ### Start
 
-Godo tracks the pid of the `Start()` async function to restart an application gracefully.
-
-Start an async command. If executable has suffix ".go" then it will be "go install"ed then executed.
+Start an async command. If the executable has suffix ".go" then it will be "go install"ed then executed.
 Use this for watching a server task.
 
     Start("main.go", In{"cmd/app"})
+    
+Godo tracks the pid of the `Start` async function to restart an application gracefully.
 
 ### Inside
 
-If you need to run many commands in a directory, use `Inside` instead of
-the `In` options.
+To run many commands inside a directory, use `Inside` instead of the `In` option.
+`Inside` changes the working directory.
 
     Inside("somedir", func() {
         Run("...")
         Bash("...")
     })
 
-## Godofile run-time environment
-
-Tasks often need to run in a known evironment.
+## Godofile Run-Time Environment
 
 To specify whether to inherit from parent's process environment,
 set `InheritParentEnv`. This setting defaults to true
@@ -150,17 +146,14 @@ Separate with whitespace or newlines.
     `
 
 Functions can add or override environment variables as part of the command string.
-Note that environment variables are set similar to how you would set them in
-a shell; however, the `Run` and `Start` functions do not use a shell.
+Note that environment variables are set before the executable similar to a shell; 
+however, the `Run` and `Start` functions do not use a shell.
 
     p.Task("build", func() {
         Run("GOOS=linux GOARCH=amd64 go build" )
     })
 
-The effective environment for `Run` or `Start` is: `parent (if inherited) <- Env <- func overrides`
-
-The effective environment for `Bash` is: `parent (if inherited) <- Env`
+The effective environment for `Run` or `Start` is: `parent (if inherited) <- Env <- func parsed env`
 
 Note: Interpolation of `$VARIABLE` is always from parent environment even if
 `InheritParentEnv` is `false`.
-
