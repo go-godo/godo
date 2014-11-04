@@ -12,9 +12,9 @@ import (
 
 	flag "github.com/ogier/pflag"
 
-	"github.com/go-godo/godo/util"
-	"github.com/go-godo/godo/watcher"
 	"github.com/mgutz/str"
+	"gopkg.in/godo.v1/util"
+	"gopkg.in/godo.v1/watcher"
 )
 
 // M is generic string to interface alias

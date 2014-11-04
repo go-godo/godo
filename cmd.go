@@ -5,8 +5,8 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/go-godo/godo/util"
 	"github.com/mgutz/ansi"
+	"gopkg.in/godo.v1/util"
 )
 
 var spawnedProcesses = make(map[string]*os.Process)

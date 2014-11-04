@@ -12,7 +12,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/MichaelTJones/walk"
-	"github.com/go-godo/godo/util"
+	"gopkg.in/godo.v1/util"
 )
 
 const (

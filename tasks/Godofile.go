@@ -1,10 +1,10 @@
 package main
 
 import (
-	. "github.com/go-godo/godo"
 	"github.com/mgutz/goa"
 	f "github.com/mgutz/goa/filter"
 	"github.com/mgutz/str"
+	. "gopkg.in/godo.v1"
 )
 
 // Tasks is local project.
@@ -29,7 +29,7 @@ func Tasks(p *Project) {
 		// add godoc
 		goa.Pipe(
 			f.Load("./README.md"),
-			f.Str(str.ReplaceF("--", "\n[godoc](https://godoc.org/github.com/go-godo/godo)\n", 1)),
+			f.Str(str.ReplaceF("--", "\n[godoc](https://godoc.org/gopkg.in/godo.v1)\n", 1)),
 			f.Write(),
 		)
 	})

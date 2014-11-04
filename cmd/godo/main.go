@@ -9,9 +9,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/go-godo/godo"
-	"github.com/go-godo/godo/util"
 	"github.com/mgutz/str"
+	"gopkg.in/godo.v1"
+	"gopkg.in/godo.v1/util"
 )
 
 func checkError(err error, format string, args ...interface{}) {
@@ -81,7 +81,7 @@ func buildMain(src string) string {
 		template := `
 	        package main
 	        import (
-	            "github.com/go-godo/godo"
+	            "gopkg.in/godo.v1"
 	            pkg "{{package}}"
 	        )
 	        func main() {
