@@ -1,6 +1,6 @@
 # godo
 
-[godoc](https://godoc.org/github.com/go-godo/godo)
+[godoc](https://godoc.org/gopkg.in/godo.v1)
 
 godo is a task runner and file watcher for golang in the spirit of
 rake, gulp.
