@@ -3,14 +3,11 @@ package godo
 import (
 	"fmt"
 	"os"
-	"path"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-
-	flag "github.com/ogier/pflag"
 
 	"github.com/mgutz/str"
 	"gopkg.in/godo.v1/util"
@@ -112,13 +109,10 @@ func (project *Project) run(name string, logName string, e *watcher.FileEvent) e
 	return nil
 }
 
-// Usage prints usage about the app and tasks.
-func (project *Project) Usage() {
-	fmt.Printf("godo %s\n", Version)
-	fmt.Printf("Usage: %s [flags] [task...]\n\n", path.Base(os.Args[0]))
-	flag.PrintDefaults()
-	fmt.Printf("\nTasks\n\n")
+// usage returns a string for usage screen
+func (project *Project) usage() string {
 
+	tasks := "Tasks:\n"
 	names := []string{}
 	m := map[string]*Task{}
 	for ns, proj := range project.Namespace {
@@ -149,8 +143,10 @@ func (project *Project) Usage() {
 				description = "Runs " + name + " task"
 			}
 		}
-		fmt.Printf("  %-"+strconv.Itoa(longest)+"s  %s\n", name, description)
+		tasks += fmt.Sprintf("  %-"+strconv.Itoa(longest)+"s  %s\n", name, description)
 	}
+
+	return tasks
 }
 
 // Use uses another project's task within a namespace.

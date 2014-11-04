@@ -64,7 +64,11 @@ func main() {
 func buildMain(src string) string {
 	tempFile := ""
 	data, err := ioutil.ReadFile(src)
-	checkError(err, "%s not found\n", src)
+	if err != nil {
+		godo.Usage("")
+		fmt.Printf("\n\n%s not found\n", src)
+		os.Exit(1)
+	}
 
 	if !hasMain(data) {
 		if isPackageMain(data) {

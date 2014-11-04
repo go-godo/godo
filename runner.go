@@ -8,10 +8,10 @@ import (
 	flag "github.com/ogier/pflag"
 )
 
-var watching = flag.Bool("watch", false, "Watch task and dependencies")
-var help = flag.Bool("help", false, "View this usage screen")
-var verbose = flag.Bool("verbose", false, "View more info like which file changed")
-var version = flag.BoolP("version", "v", false, "Show version number")
+var watching = flag.BoolP("watch", "w", false, "")
+var help = flag.BoolP("help", "h", false, "")
+var verbose = flag.Bool("verbose", false, "")
+var version = flag.BoolP("version", "v", false, "")
 
 // DebounceMs is the default time (1500 ms) to debounce task events in watch mode.
 var DebounceMs int64
@@ -22,6 +22,24 @@ func init() {
 	DebounceMs = 2000
 }
 
+func Usage(tasks string) {
+	// go's flag package prints ugly screen
+	format := `godo %s - do task(s)
+
+Usage: godo [flags] [task...]
+    --help     View this usage screen
+    --verbose  Log verbosely
+-v, --version  Print version
+    --watch    Watch task and dependencies`
+
+	if tasks == "" {
+		fmt.Printf(format, Version)
+	} else {
+		format += "\n\n%s"
+		fmt.Printf(format, Version, tasks)
+	}
+}
+
 // Godo runs a project of tasks.
 func Godo(tasksFunc func(*Project)) {
 	flag.Parse()
@@ -29,7 +47,7 @@ func Godo(tasksFunc func(*Project)) {
 	project := NewProject(tasksFunc)
 
 	if *help {
-		project.Usage()
+		Usage(project.usage())
 		os.Exit(0)
 	}
 
@@ -43,7 +61,7 @@ func Godo(tasksFunc func(*Project)) {
 		if project.Tasks["default"] != nil {
 			project.Run("default")
 		} else {
-			flag.Usage = project.Usage
+			Usage(project.usage())
 		}
 	} else {
 		for _, name := range flag.Args() {
