@@ -1,8 +1,8 @@
 package godo
 
 import (
-	"github.com/go-godo/godo/watcher"
 	"gopkg.in/fsnotify.v1"
+	"gopkg.in/godo.v1/watcher"
 )
 
 // Context is the data passed to a task.
