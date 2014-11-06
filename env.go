@@ -31,7 +31,7 @@ func init() {
 	InheritParentEnv = true
 }
 
-var envvarRe = regexp.MustCompile(`\$(\w+)`)
+var envvarRe = regexp.MustCompile(`\$(\w+|\{(\w+)\})`)
 
 func interpolateEnv(env []string, kv string) string {
 	if strings.Contains(kv, PathListSeparator) {
@@ -41,8 +41,14 @@ func interpolateEnv(env []string, kv string) string {
 	// find all key=$EXISTING_VAR:foo and interpolate from os.Environ()
 	matches := envvarRe.FindAllStringSubmatch(kv, -1)
 	for _, match := range matches {
-		existingVar := match[1]
-		kv = strings.Replace(kv, "$"+existingVar, getEnv(env, existingVar, true), -1)
+		existingVar := ""
+		if match[2] == "" {
+			existingVar = match[1]
+			kv = strings.Replace(kv, "$"+existingVar, getEnv(env, existingVar, true), -1)
+		} else {
+			existingVar = match[2]
+			kv = strings.Replace(kv, "${"+existingVar+"}", getEnv(env, existingVar, true), -1)
+		}
 	}
 	return kv
 }
