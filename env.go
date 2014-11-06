@@ -19,6 +19,7 @@ import (
 //   GOPATH=./vendor:$GOPATH
 // `
 var Env string
+var environ []string
 
 // PathListSeparator is a cross-platform path list separator. On Windows, PathListSeparator
 // is replacd by ";". On others, PathListSeparator is replaced by ":"
@@ -31,6 +32,23 @@ func init() {
 	InheritParentEnv = true
 }
 
+// SetEnviron sets the environment for child processes. Note that
+// SetEnviron(Env, InheritParentEnv) is called once automatically.
+func SetEnviron(envstr string, inheritParent bool) {
+	if inheritParent {
+		environ = os.Environ()
+	} else {
+		environ = []string{}
+	}
+
+	// merge in package Env
+	if envstr != "" {
+		for _, kv := range parseStringEnv(envstr) {
+			upsertenv(&environ, kv)
+		}
+	}
+}
+
 var envvarRe = regexp.MustCompile(`\$(\w+|\{(\w+)\})`)
 
 func interpolateEnv(env []string, kv string) string {
@@ -41,14 +59,11 @@ func interpolateEnv(env []string, kv string) string {
 	// find all key=$EXISTING_VAR:foo and interpolate from os.Environ()
 	matches := envvarRe.FindAllStringSubmatch(kv, -1)
 	for _, match := range matches {
-		existingVar := ""
-		if match[2] == "" {
+		existingVar := match[2]
+		if existingVar == "" {
 			existingVar = match[1]
-			kv = strings.Replace(kv, "$"+existingVar, getEnv(env, existingVar, true), -1)
-		} else {
-			existingVar = match[2]
-			kv = strings.Replace(kv, "${"+existingVar+"}", getEnv(env, existingVar, true), -1)
 		}
+		kv = strings.Replace(kv, match[0], getEnv(env, existingVar, true), -1)
 	}
 	return kv
 }
@@ -92,20 +107,16 @@ func upsertenv(env *[]string, kv string) {
 
 // effectiveEnv is the effective environment for an exec function.
 func effectiveEnv(funcEnv []string) []string {
-	var env []string
-	if InheritParentEnv {
-		env = os.Environ()
-	} else {
-		env = []string{}
+
+	if environ == nil {
+		SetEnviron(Env, InheritParentEnv)
 	}
 
-	// merge in package Env
-	for _, kv := range parseStringEnv(Env) {
-		upsertenv(&env, kv)
-	}
+	env := make([]string, len(environ))
+	copy(env, environ)
 
 	// merge in func's env
-	if funcEnv != nil {
+	if funcEnv != nil && len(funcEnv) > 0 {
 		for _, kv := range funcEnv {
 			upsertenv(&env, kv)
 		}

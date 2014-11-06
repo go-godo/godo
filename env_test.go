@@ -6,16 +6,15 @@ import (
 )
 
 func TestEnvironment(t *testing.T) {
-	Env = `
-	USER=$USER:godo
-	`
+	SetEnviron("USER=$USER:godo", true)
+
 	user := os.Getenv("USER")
 	env := effectiveEnv(nil)
 	if !sliceContains(env, "USER="+user+":godo") {
-		t.Error("Environment interpolation failed")
+		t.Error("Environment interpolation failed", env)
 	}
 
-	InheritParentEnv = false
+	SetEnviron("USER=$USER:godo", false)
 	env = effectiveEnv(nil)
 	if len(env) != 1 {
 		t.Error("Disabling parent inheritance failed")
@@ -25,9 +24,7 @@ func TestEnvironment(t *testing.T) {
 	}
 
 	// set back to defaults
-	Env = ""
-	InheritParentEnv = true
-
+	SetEnviron("", true)
 	l := len(os.Environ())
 	env = effectiveEnv([]string{"USER=$USER:$USER:func"})
 	if !sliceContains(env, "USER="+user+":"+user+":func") {
@@ -45,10 +42,10 @@ func TestEnvironment(t *testing.T) {
 		t.Error("Effective environment length should have increased by 1")
 	}
 
-	Env = `
-	USER1=$USER
-	USER2=$USER1
-	`
+	SetEnviron(`
+		USER1=$USER
+		USER2=$USER1
+	`, true)
 	env = effectiveEnv([]string{"USER3=$USER2"})
 	if !sliceContains(env, "USER1="+user) {
 		t.Error("Should have interpolated from parent env")
@@ -63,16 +60,15 @@ func TestEnvironment(t *testing.T) {
 	}
 
 	// set back to defaults
-	Env = ""
-	InheritParentEnv = true
+	SetEnviron("", true)
 }
 
-func TestLongFormInterpolation(t *testing.T) {
-	Env = `
-	FOO=foo
-	FAIL=$FOObar:godo
-	OK=${FOO}bar:godo
-	`
+func TestExpansion(t *testing.T) {
+	SetEnviron(`
+		FOO=foo
+		FAIL=$FOObar:godo
+		OK=${FOO}bar:godo
+	`, true)
 
 	env := effectiveEnv([]string{})
 	if !sliceContains(env, "FAIL=:godo") {
@@ -80,5 +76,14 @@ func TestLongFormInterpolation(t *testing.T) {
 	}
 	if !sliceContains(env, "OK=foobar:godo") {
 		t.Error("${FOO}bar should have expanded", env)
+	}
+}
+
+func TestInheritedRunEnv(t *testing.T) {
+	os.Setenv("TEST_RUN_ENV", "fubar")
+	SetEnviron("", true)
+	output, _ := RunOutput(`FOO=bar BAH=baz bash -c "echo -n $TEST_RUN_ENV $FOO"`)
+	if output != "fubar bar" {
+		t.Error("Environment was not inherited! Got", output)
 	}
 }

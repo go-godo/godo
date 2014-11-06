@@ -2,7 +2,6 @@ package godo
 
 import (
 	"io/ioutil"
-	"os"
 	"sort"
 	"strings"
 	"testing"
@@ -116,14 +115,6 @@ func TestCalculateWatchPaths(t *testing.T) {
 	}
 	if paths[0] != "." {
 		t.Error("Expected . got", paths[0])
-	}
-}
-
-func TestInheritedRunEnv(t *testing.T) {
-	os.Setenv("TEST_RUN_ENV", "fubar")
-	output, _ := RunOutput(`FOO=bar BAH=baz bash -c "echo -n $TEST_RUN_ENV $FOO"`)
-	if output != "fubar bar" {
-		t.Error("Environment was not inherited! Got", output)
 	}
 }
 
