@@ -11,7 +11,9 @@ To install
 
 ## Godofile
 
-As an example, create a file **tasks/Godofile.go** with this content
+**godo** runs either `Gododir/Godofile.go` or `tasks/Godofile.go`.
+
+As an example, create a file **Gododir/Godofile.go** with this content
 
     package main
 
@@ -20,7 +22,7 @@ As an example, create a file **tasks/Godofile.go** with this content
     )
 
     func Tasks(p *Project) {
-        Env = "GOPATH=.vendor:$GOPATH PG_PASSWORD=dev"
+        Env = "GOPATH=.vendor::$GOPATH PG_PASSWORD=dev"
 
         p.Task("default", D{"hello", "build"})
 
@@ -117,7 +119,7 @@ Start an async command. If the executable has suffix ".go" then it will be "go i
 Use this for watching a server task.
 
     Start("main.go", In{"cmd/app"})
-    
+
 Godo tracks the pid of the `Start` async function to restart an application gracefully.
 
 ### Inside
@@ -141,19 +143,20 @@ To specify the base environment for your tasks, set `Env`.
 Separate with whitespace or newlines.
 
     Env = `
-        GOPATH=.vendor:$GOPATH
+        GOPATH=.vendor::$GOPATH
         PG_USER="developer"
     `
 
 Functions can add or override environment variables as part of the command string.
-Note that environment variables are set before the executable similar to a shell; 
+Note that environment variables are set before the executable similar to a shell;
 however, the `Run` and `Start` functions do not use a shell.
 
     p.Task("build", func() {
         Run("GOOS=linux GOARCH=amd64 go build" )
     })
 
-The effective environment for `Run` or `Start` is: `parent (if inherited) <- Env <- func parsed env`
+The effective environment for exec functions is: `parent (if inherited) <- Env <- func parsed env`
 
-Note: Interpolation of `$VARIABLE` is always from parent environment even if
-`InheritParentEnv` is `false`.
+Paths should use `::` as a cross-platform path list separator. On Windows `::` is replaced with `;`.
+On Mac and linux `::` is replaced with `:`.
+

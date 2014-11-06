@@ -226,4 +226,25 @@ func TestEnvironment(t *testing.T) {
 	if len(env) != l+1 {
 		t.Error("Effective environment length should have increased by 1")
 	}
+
+	Env = `
+	USER1=$USER
+	USER2=$USER1
+	`
+	env = effectiveEnv([]string{"USER3=$USER2"})
+	if !sliceContains(env, "USER1="+user) {
+		t.Error("Should have interpolated from parent env")
+	}
+	if !sliceContains(env, "USER3="+user) {
+		t.Error("Should have interpolated from effective env")
+	}
+
+	env = effectiveEnv([]string{"PATH=foo::bar::bah"})
+	if !sliceContains(env, "PATH=foo"+string(os.PathSeparator)+"bar"+string(os.PathSeparator)+"bah") {
+		t.Error("Should have replaced PathSeparator")
+	}
+
+	// set back to defaults
+	Env = ""
+	InheritParentEnv = true
 }

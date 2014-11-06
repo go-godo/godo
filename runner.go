@@ -22,15 +22,16 @@ func init() {
 	DebounceMs = 2000
 }
 
+// Usage prints a usage screen with task descriptions.
 func Usage(tasks string) {
 	// go's flag package prints ugly screen
 	format := `godo %s - do task(s)
 
 Usage: godo [flags] [task...]
-    --help     View this usage screen
-    --verbose  Log verbosely
--v, --version  Print version
-    --watch    Watch task and dependencies`
+  -h, --help     This screen
+      --verbose  Log verbosely
+  -v, --version  Print version
+  -w, --watch    Watch task and dependencies`
 
 	if tasks == "" {
 		fmt.Printf(format, Version)

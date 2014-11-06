@@ -34,7 +34,8 @@ func isPackageMain(data []byte) bool {
 }
 
 func main() {
-	godoFiles := []string{"Godofile.go", "tasks/Godofile.go"}
+	// legacy version used tasks/
+	godoFiles := []string{"Gododir/Godofile.go", "tasks/Godofile.go"}
 	src := ""
 	rel := ""
 	for _, filename := range godoFiles {
@@ -50,13 +51,18 @@ func main() {
 		break
 	}
 
+	if src == "" {
+		godo.Usage("")
+		fmt.Printf("\n\n%s not found\n", src)
+		os.Exit(1)
+	}
+
 	mainFile := buildMain(rel)
 	if mainFile != "" {
 		src = mainFile
 		defer os.RemoveAll(filepath.Dir(mainFile))
 	}
 	cmd := "go run " + src + " " + strings.Join(os.Args[1:], " ")
-	//log.Printf("DBG %s\n", cmd)
 	// errors are displayed by tasks
 	godo.Run(cmd)
 }
@@ -65,8 +71,7 @@ func buildMain(src string) string {
 	tempFile := ""
 	data, err := ioutil.ReadFile(src)
 	if err != nil {
-		godo.Usage("")
-		fmt.Printf("\n\n%s not found\n", src)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 

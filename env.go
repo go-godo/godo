@@ -20,6 +20,10 @@ import (
 // `
 var Env string
 
+// PathListSeparator is a cross-platform path list separator. On Windows, PathListSeparator
+// is replacd by ";". On others, PathListSeparator is replaced by ":"
+var PathListSeparator = "::"
+
 // InheritParentEnv whether to inherit parent's environment
 var InheritParentEnv bool
 
@@ -29,14 +33,32 @@ func init() {
 
 var envvarRe = regexp.MustCompile(`\$(\w+)`)
 
-func interpolateEnv(kv string) string {
+func interpolateEnv(env []string, kv string) string {
+	if strings.Contains(kv, PathListSeparator) {
+		kv = strings.Replace(kv, PathListSeparator, string(os.PathListSeparator), -1)
+	}
+
 	// find all key=$EXISTING_VAR:foo and interpolate from os.Environ()
 	matches := envvarRe.FindAllStringSubmatch(kv, -1)
 	for _, match := range matches {
 		existingVar := match[1]
-		kv = strings.Replace(kv, "$"+existingVar, os.Getenv(existingVar), -1)
+		kv = strings.Replace(kv, "$"+existingVar, getEnv(env, existingVar, true), -1)
 	}
 	return kv
+}
+
+func getEnv(env []string, key string, checkParent bool) string {
+	for _, kv := range env {
+		pair := strings.Split(kv, "=")
+		if pair[0] == key {
+			return pair[1]
+		}
+	}
+
+	if checkParent {
+		return os.Getenv(key)
+	}
+	return ""
 }
 
 // upsertenv updates or inserts a key=value pair into an environment.
@@ -50,7 +72,7 @@ func upsertenv(env *[]string, kv string) {
 	for i, item := range *env {
 		ipair := strings.Split(item, "=")
 		if ipair[0] == pair[0] {
-			(*env)[i] = interpolateEnv(kv)
+			(*env)[i] = interpolateEnv(*env, kv)
 			set = true
 			break
 		}
@@ -58,7 +80,7 @@ func upsertenv(env *[]string, kv string) {
 	}
 
 	if !set {
-		*env = append(*env, interpolateEnv(kv))
+		*env = append(*env, interpolateEnv(*env, kv))
 	}
 }
 
