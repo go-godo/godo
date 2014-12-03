@@ -77,7 +77,10 @@ func (project *Project) debounce(task *Task) bool {
 
 // Run runs a task by name.
 func (project *Project) Run(name string) {
-	project.run(name, name, nil)
+	err := project.run(name, name, nil)
+	if err != nil {
+		fmt.Printf("error running task %s: %v\n", name, err)
+	}
 }
 
 // RunWithEvent runs a task by name and adds FileEvent e to the context.
@@ -86,7 +89,7 @@ func (project *Project) runWithEvent(name string, logName string, e *watcher.Fil
 }
 
 // run runs the project, executing any tasks named on the command line.
-func (project *Project) run(name string, logName string, e *watcher.FileEvent) error {
+func (project *Project) run(name string, logName string, e *watcher.FileEvent) (err error) {
 	_, task := project.mustTask(name)
 	if project.debounce(task) {
 		return nil
@@ -95,6 +98,17 @@ func (project *Project) run(name string, logName string, e *watcher.FileEvent) e
 	if e != nil && !task.isWatchedFile(e) {
 		return nil
 	}
+
+	// recover any mustPanic's
+	defer func() {
+		if p := recover(); p != nil {
+			mp, ok := p.(*mustPanic)
+			if !ok {
+				panic(p)
+			}
+			err = mp.err
+		}
+	}()
 
 	// Run each task including their dependencies.
 	for _, depName := range task.Dependencies {
