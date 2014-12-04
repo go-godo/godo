@@ -33,6 +33,15 @@ func BashVerbose(script string, wd ...In) error {
 	return err
 }
 
+// BashOutputVerbose prints the script that is being executed and the output,
+// and returns the output as string.
+func BashOutputVerbose(script string, wd ...In) (string, error) {
+	fmt.Printf("$ %s\n", script)
+	output, err := bash(true, script, wd)
+	fmt.Println(output)
+	return output, err
+}
+
 // Run runs a command with an an option to set the working directory.
 func Run(commandstr string, wd ...In) error {
 	_, err := run(false, commandstr, wd)
