@@ -25,7 +25,7 @@ func BashOutput(script string, wd ...In) (string, error) {
 	return bash(true, script, wd)
 }
 
-// BashVerbose prints the script that is being executed and the output.
+// BashVerbose prints the script that is being executed and it's output (stdout, stderr).
 func BashVerbose(script string, wd ...In) error {
 	fmt.Printf("$ %s\n", script)
 	output, err := bash(true, script, wd)
@@ -33,9 +33,9 @@ func BashVerbose(script string, wd ...In) error {
 	return err
 }
 
-// BashOutputVerbose prints the script that is being executed and the output,
-// and returns the output as string.
-func BashOutputVerbose(script string, wd ...In) (string, error) {
+// BashVerboseOutput prints the script that is being executed and it's output (stdout, stderr).
+// Afterwards, the output is returned as string.
+func BashVerboseOutput(script string, wd ...In) (string, error) {
 	fmt.Printf("$ %s\n", script)
 	output, err := bash(true, script, wd)
 	fmt.Println(output)
