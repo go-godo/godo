@@ -29,7 +29,6 @@ func BashOutput(script string, wd ...In) (string, error) {
 func BashVerbose(script string, wd ...In) error {
 	fmt.Printf("$ %s\n", script)
 	output, err := bash(true, script, wd)
-	fmt.Println(output)
 	return err
 }
 
@@ -38,7 +37,6 @@ func BashVerbose(script string, wd ...In) error {
 func BashVerboseOutput(script string, wd ...In) (string, error) {
 	fmt.Printf("$ %s\n", script)
 	output, err := bash(true, script, wd)
-	fmt.Println(output)
 	return output, err
 }
 
