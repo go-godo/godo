@@ -67,9 +67,9 @@ func Godo(tasksFunc func(*Project)) {
 		}
 	}
 
-	// quick fix to make cascading watch work on a task without watch dependencies
-	if len(args) == 1 {
-		args = project.Tasks[args[0]].Dependencies
+	// quick fix to make cascading watch work on default task
+	if len(args) == 1 && args[0] == "default" {
+		args = project.Tasks["default"].Dependencies
 	}
 
 	for _, name := range args {
