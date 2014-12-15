@@ -277,12 +277,6 @@ func (project *Project) gatherWatchInfo(task *Task) (globs []string, regexps []*
 func (project *Project) Watch(names []string, isParent bool) {
 	funcs := []func(){}
 
-	if len(names) == 0 {
-		if project.Tasks["default"] != nil {
-			names = append(names, "default")
-		}
-	}
-
 	taskClosure := func(project *Project, task *Task, taskname string, logName string) func() {
 		globs, _ := project.gatherWatchInfo(task)
 		paths := calculateWatchPaths(globs)
