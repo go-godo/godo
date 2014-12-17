@@ -2,16 +2,30 @@ package main
 
 import (
 	"fmt"
+	"go/build"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
+	"text/template"
 
-	"github.com/mgutz/str"
 	"gopkg.in/godo.v1"
 	"gopkg.in/godo.v1/util"
+)
+
+const (
+	filenameGododir = `Gododir`
+	tmplMainText    = `package main
+
+import (
+	"gopkg.in/godo.v1"
+	tasks "{{.packageImportPath}}"
+)
+
+func main() {
+	godo.Godo(tasks.Tasks)
+}
+`
 )
 
 func checkError(err error, format string, args ...interface{}) {
@@ -21,103 +35,67 @@ func checkError(err error, format string, args ...interface{}) {
 	}
 }
 
-func hasMain(data []byte) bool {
-	hasMainRe := regexp.MustCompile(`\nfunc main\(`)
-	matches := hasMainRe.Find(data)
-	return len(matches) > 0
-}
-
-func isPackageMain(data []byte) bool {
-	isMainRe := regexp.MustCompile(`(\n|^)?package main\b`)
-	matches := isMainRe.Find(data)
-	return len(matches) > 0
-}
-
 func main() {
-	// legacy version used tasks/
-	godoFiles := []string{"Gododir/Godofile.go", "tasks/Godofile.go"}
-	src := ""
-	rel := ""
-	for _, filename := range godoFiles {
-		rel = filename
-		filename, err := filepath.Abs(filename)
+	// check if `Gododir` exists
+	if util.DirExists(filenameGododir) {
+		// get absolute path
+		gododirAbs, err := filepath.Abs(filenameGododir)
 		if err != nil {
-			panic("Could not get absolute path " + filename)
+			fmt.Printf("error getting absolute path for Gododir: %v\n", err)
+			os.Exit(1)
 		}
-		if !util.FileExists(filename) {
-			continue
+		// use go/build to parse the files in the directory and get package information
+		pkg, err := build.ImportDir(gododirAbs, 0)
+		if err != nil {
+			fmt.Printf("error in Gododir: %v\n", err)
+			return
 		}
-		src = filename
-		break
-	}
-
-	if src == "" {
-		godo.Usage("")
-		fmt.Printf("\n\n%s not found\n", src)
-		os.Exit(1)
-	}
-
-	mainFile := buildMain(rel)
-	if mainFile != "" {
-		src = mainFile
-		defer os.RemoveAll(filepath.Dir(mainFile))
-	}
-	cmd := "go run " + src + " " + strings.Join(os.Args[1:], " ")
-	// errors are displayed by tasks
-	godo.Run(cmd)
-}
-
-func buildMain(src string) string {
-	tempFile := ""
-	data, err := ioutil.ReadFile(src)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-
-	if !hasMain(data) {
-		if isPackageMain(data) {
-			msg := `%s is not runnable. Rename package OR make it runnable by adding
-
-    func main() {
-        godo.Godo(Tasks)
-    }
-`
-			fmt.Printf(msg, src)
+		// error when package is a command
+		if pkg.IsCommand() {
+			fmt.Println("error: the source files in Gododir should not be a command (package main).")
 			os.Exit(1)
 		}
 
-		template := `
-	        package main
-	        import (
-	            "gopkg.in/godo.v1"
-	            pkg "{{package}}"
-	        )
-	        func main() {
-	            godo.Godo(pkg.Tasks)
-	        }
-	    `
-		packageName, err := util.PackageName(src)
-		if err != nil {
-			panic(err)
-		}
-		code := str.Template(template, map[string]interface{}{
-			"package": filepath.ToSlash(packageName),
-		})
-		//log.Println("DBG template", code)
+		// create temp go file that imports the Gododir package and executes the tasks
+		tmplMain := template.Must(template.New("main").Parse(tmplMainText))
 		tempDir, err := ioutil.TempDir("", "godo")
 		if err != nil {
-			panic("Could not create temp directory")
+			fmt.Printf("could not create temp dir: %v\n", err)
+			os.Exit(1)
 		}
-		//log.Printf("code\n %s\n", code)
-		tempFile = filepath.Join(tempDir, "Godofile_main.go")
-		err = ioutil.WriteFile(tempFile, []byte(code), 0644)
+		tempFileName := filepath.Join(tempDir, "Gododir_main.go")
+		tempFile, err := os.Create(tempFileName)
 		if err != nil {
-			log.Panicf("Could not write temp file %s\n", tempFile)
+			fmt.Printf("error creating temp main file: %v\n", err)
+			os.Exit(1)
 		}
+		defer tempFile.Close()
+		err = tmplMain.Execute(tempFile, map[string]string{
+			"packageImportPath": pkg.ImportPath,
+		})
+		if err != nil {
+			fmt.Printf("could not write/execute main template to temp file: %v\n", err)
+			os.Exit(1)
+		}
+		tempFile.Close()
 
-		src = tempFile
-		return src
+		// run package
+		cmd := "go run " + tempFileName + " " + strings.Join(os.Args[1:], " ")
+		godo.Run(cmd)
+
+		// all done
+		return
 	}
-	return ""
+
+	// fallback to legacy method
+	ok, err := runLegacy()
+	if err != nil {
+		fmt.Printf("error running tasks/Godofile.go: %v\n", err)
+		os.Exit(1)
+	}
+	if !ok {
+		godo.Usage("")
+		fmt.Println("")
+		os.Exit(1)
+	}
 }

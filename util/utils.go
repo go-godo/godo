@@ -9,10 +9,29 @@ import (
 	"text/template"
 )
 
-// FileExists determines if path exists
-func FileExists(filename string) bool {
-	_, err := os.Stat(filename)
+// PathExists determines if path exists
+// It does not check if the path is a file or directory
+func PathExists(path string) bool {
+	_, err := os.Stat(path)
 	return !os.IsNotExist(err)
+}
+
+// FileExists determines if file exists
+func FileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) || info.IsDir() {
+		return false
+	}
+	return true
+}
+
+// DirExists determines if dir exists
+func DirExists(path string) bool {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) || !info.IsDir() {
+		return false
+	}
+	return true
 }
 
 // PackageName determines the package name from sourceFile if it is within $GOPATH
