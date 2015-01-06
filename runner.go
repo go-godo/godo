@@ -3,6 +3,7 @@ package godo
 import (
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 
 	flag "github.com/ogier/pflag"
@@ -72,8 +73,19 @@ func Godo(tasksFunc func(*Project)) {
 		args = project.Tasks["default"].Dependencies
 	}
 
+	tasks := []string{}
 	for _, name := range args {
-		project.Run(name)
+		i := strings.Index(name, "=")
+		if i >= 0 {
+			key := name[:i]
+			value := name[i+1:]
+			os.Setenv(key, value)
+		} else {
+			tasks = append(tasks, name)
+		}
+	}
+	for _, task := range tasks {
+		project.Run(task)
 	}
 
 	if *watching {
