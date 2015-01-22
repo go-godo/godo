@@ -146,6 +146,12 @@ Separate with whitespace or newlines.
         GOPATH=.vendor::$GOPATH
         PG_USER="developer"
     `
+    
+TIP: Set the `Env` when using a dependency manager like `godep` 
+
+    wd, _ := os.Getwd()
+    godepWorkspace := path.Join(wd, "Godeps/_workspace")
+    Env = fmt.Sprintf("GOPATH=%s::$GOPATH", godepWorkspace)
 
 Functions can add or override environment variables as part of the command string.
 Note that environment variables are set before the executable similar to a shell;
