@@ -285,9 +285,11 @@ func (project *Project) Watch(names []string, isParent bool) {
 				return
 			}
 			for _, pth := range paths {
-				watchTask(pth, logName, func(e *watcher.FileEvent) {
-					project.run(taskname, taskname, e)
-				})
+				go func(path string) {
+					watchTask(path, logName, func(e *watcher.FileEvent) {
+						project.run(taskname, taskname, e)
+					})
+				}(pth)
 			}
 		}
 	}
