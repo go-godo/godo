@@ -38,8 +38,8 @@ As an example, create a file **Gododir/Godofile.go** with this content
             Run("razor templates")
         })
 
-        p.Task("server", D{"views"}, W{"**/*.go"}, Debounce(3000), func() {
-            // Start recompiles and restarts on changes when watching
+        p.Task("server", D{"views"}, W{"server/**/*.go", "cmd/server/*.{go,json}"}, Debounce(3000), func() {
+            // rebuilds and restarts the process when a watched file changes
             Start("main.go", In{"cmd/server"})
         })
     }
@@ -53,7 +53,7 @@ To run "server" task from parent dir of `tasks/`
 
     godo server
 
-To rerun "server" and its dependencies whenever any `*.go.html`  or `*.go` file changes
+To rerun "server" and its dependencies whenever any `*.go.html`,  `*.go` or `*.json` file changes
 
     godo server --watch
 
@@ -120,7 +120,7 @@ Use this for watching a server task.
 
     Start("main.go", In{"cmd/app"})
 
-Godo tracks the pid of the `Start` async function to restart an application gracefully.
+Godo tracks the process ID of started processes to restart the app gracefully.
 
 ### Inside
 
@@ -144,14 +144,14 @@ Separate with whitespace or newlines.
 
     Env = `
         GOPATH=.vendor::$GOPATH
-        PG_USER="developer"
+        PG_USER=mario
     `
-    
-TIP: Set the `Env` when using a dependency manager like `godep` 
+
+TIP: Set the `Env` when using a dependency manager like `godep`
 
     wd, _ := os.Getwd()
-    godepWorkspace := path.Join(wd, "Godeps/_workspace")
-    Env = fmt.Sprintf("GOPATH=%s::$GOPATH", godepWorkspace)
+    ws := path.Join(wd, "Godeps/_workspace")
+    Env = fmt.Sprintf("GOPATH=%s::$GOPATH", ws)
 
 Functions can add or override environment variables as part of the command string.
 Note that environment variables are set before the executable similar to a shell;

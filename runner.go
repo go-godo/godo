@@ -77,6 +77,8 @@ func Godo(tasksFunc func(*Project)) {
 	}
 
 	if *watching {
+		waitgroup.Add(1)
+		waitExit = true
 		project.Watch(args, true)
 	}
 
