@@ -3,12 +3,13 @@ package watcher
 
 import (
 	//"fmt"
-	"gopkg.in/fsnotify.v1"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"gopkg.in/fsnotify.v1"
 
 	"github.com/mgutz/str"
 )

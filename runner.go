@@ -77,9 +77,13 @@ func Godo(tasksFunc func(*Project)) {
 	}
 
 	if *watching {
-		waitgroup.Add(1)
-		waitExit = true
-		project.Watch(args, true)
+		if project.Watch(args, true) {
+			waitgroup.Add(1)
+			waitExit = true
+		} else {
+			fmt.Println("Nothing to watch. Use W{} or Watch{} to specify glob patterns")
+			os.Exit(0)
+		}
 	}
 
 	if waitExit {

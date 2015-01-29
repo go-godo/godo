@@ -273,8 +273,8 @@ func (project *Project) gatherWatchInfo(task *Task) (globs []string, regexps []*
 }
 
 // Watch watches the Files of a task and reruns the task on a watch event. Any
-// direct dependency is also watched.
-func (project *Project) Watch(names []string, isParent bool) {
+// direct dependency is also watched. Returns true if watching.
+func (project *Project) Watch(names []string, isParent bool) bool {
 	funcs := []func(){}
 
 	taskClosure := func(project *Project, task *Task, taskname string, logName string) func() {
@@ -304,7 +304,9 @@ func (project *Project) Watch(names []string, isParent bool) {
 	if len(funcs) > 0 {
 		done := all(funcs)
 		<-done
+		return true
 	}
+	return false
 }
 
 // all runs the functions in fns concurrently.
