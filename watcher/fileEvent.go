@@ -1,18 +1,58 @@
 package watcher
 
-import (
-	"gopkg.in/fsnotify.v1"
-	//"log"
+import "fmt"
+
+//"log"
+
+const (
+	// NONE means no event, initial state.
+	NONE = iota
+	// CREATED means file was created.
+	CREATED
+	// DELETED means file was deleted.
+	DELETED
+	// MODIFIED means file was modified.
+	MODIFIED
+	// PERM means changed permissions
+	PERM
+	// NOEXIST means file does not exist.
+	NOEXIST
+	// NOPERM means no permissions for the file (see const block comment).
+	NOPERM
+	// INVALID means any type of error not represented above.
+	INVALID
 )
 
 // FileEvent is a wrapper around github.com/howeyc/fsnotify.FileEvent
 type FileEvent struct {
-	*fsnotify.Event
-	Name     string
+	Event    int
+	Path     string
 	UnixNano int64
 }
 
-func newFileEvent(originEvent fsnotify.Event, unixNano int64) *FileEvent {
+// newFileEvent creates a new file event.
+func newFileEvent(op int, path string, unixNano int64) *FileEvent {
 	//log.Printf("to channel %+v\n", originEvent)
-	return &FileEvent{Event: &originEvent, Name: originEvent.Name, UnixNano: unixNano}
+	return &FileEvent{Event: op, Path: path, UnixNano: unixNano}
+}
+
+func (fe *FileEvent) String() string {
+	var status string
+	switch fe.Event {
+	case CREATED:
+		status = "was created"
+	case DELETED:
+		status = "was deleted"
+	case MODIFIED:
+		status = "was modified"
+	case PERM:
+		status = "permissions changed"
+	case NOEXIST:
+		status = "doesn't exist"
+	case NOPERM:
+		status = "has invalid permissions"
+	case INVALID:
+		status = "is invalid"
+	}
+	return fmt.Sprintf("%s %s\n", fe.Path, status)
 }

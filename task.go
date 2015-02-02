@@ -66,7 +66,7 @@ func (task *Task) isWatchedFile(e *watcher.FileEvent) bool {
 		return false
 	}
 
-	filename, err := filepath.Rel(cwd, e.Name)
+	filename, err := filepath.Rel(cwd, e.Path)
 	filename = filepath.ToSlash(filename)
 	//util.Debug("task", "checking for match %s\n", filename)
 	if err != nil {
