@@ -29,7 +29,6 @@ func Tasks(p *Project) {
 
     p.Task("hello", func(c *Context) {
         name := c.Args.ZeroString("name", "n")
-
         if name == "" {
             Bash("echo Hello $USER!")
         } else {
@@ -78,7 +77,7 @@ p.Task("build?", func() {})
 Task options
 
     D{} or Dependencies{} - dependent tasks which run before task
-    Debounce              - minimum milliseconds before task can run again
+    Debounce()            - minimum milliseconds before task can run again
     W{} or Watches{}      - array of glob file patterns to watch
 
         /**/   - match zero or more directories
@@ -105,7 +104,7 @@ As an example,
 
 ```go
 p.Task("hello", func(c *Context) {
-    # "(none)" is the default value
+    // "(none)" is the default value
     name := c.Args.MayString("(none)", "name", "n")
     fmt.Println("Hello", name)
 })
@@ -124,24 +123,24 @@ godo hello -- -n dude
 
 Args functions are categorized as
 
-*  `Must*` - Argument must be set by user
+*  `Must*` - Argument must be set by user or panic.
     
     ```go
 c.Args.MustInt("number", "n")
 ```
 
-*  `May*` - If argument is not set, default to first value in function call
+*  `May*` - If argument is not set, default to first value.
 
     ```go
     // defaults to 100
     c.Args.MayInt(100, "number", "n")
 ```
 
-*  `Zero*` - If argument is not set, default to zero value
+*  `Zero*` - If argument is not set, default to zero value.
 
     ```go
 // defaults to 0
-c.Args.ZeroInt(100, "number", "n")
+c.Args.ZeroInt("number", "n")
 ```
 
 ## Exec functions
@@ -243,4 +242,3 @@ The effective environment for exec functions is: `parent (if inherited) <- Env <
 
 Paths should use `::` as a cross-platform path list separator. On Windows `::` is replaced with `;`.
 On Mac and linux `::` is replaced with `:`.
-
