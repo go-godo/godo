@@ -52,7 +52,7 @@ func (task *Task) expandGlobs() {
 // Run runs all the dependencies of this task and when they have completed,
 // runs this task.
 func (task *Task) Run() {
-	if !*watching && task.Complete {
+	if !watching && task.Complete {
 		util.Debug(task.Name, "Already ran\n")
 		return
 	}
@@ -113,7 +113,7 @@ func (task *Task) RunWithEvent(logName string, e *watcher.FileEvent) {
 			return
 		}
 		//util.Debug(logName, "%+v %d\n", e, e.UnixNano)
-		if *verbose {
+		if verbose {
 			util.Debug(logName, "%s %d\n", e.String(), e.UnixNano)
 		}
 	}
@@ -122,7 +122,7 @@ func (task *Task) RunWithEvent(logName string, e *watcher.FileEvent) {
 	if task.Handler != nil {
 		task.Handler()
 	} else if task.ContextHandler != nil {
-		context := &Context{Task: task}
+		context := &Context{Task: task, Args: contextArgm}
 		if e != nil {
 			context.FileEvent = e
 		}

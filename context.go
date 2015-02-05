@@ -1,6 +1,9 @@
 package godo
 
-import "gopkg.in/godo.v1/watcher"
+import (
+	"github.com/mgutz/minimist"
+	"gopkg.in/godo.v1/watcher"
+)
 
 // Context is the data passed to a task.
 type Context struct {
@@ -9,6 +12,9 @@ type Context struct {
 
 	// FileEvent is an event from the watcher with change details.
 	FileEvent *watcher.FileEvent
+
+	// Task command line arguments
+	Args minimist.ArgMap
 }
 
 // AnyFile returns either a non-DELETe FileEvent file or the WatchGlob patterns which

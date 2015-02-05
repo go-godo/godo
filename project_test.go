@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSimpleTask(t *testing.T) {
@@ -20,6 +22,24 @@ func TestSimpleTask(t *testing.T) {
 	if result != "A" {
 		t.Error("should have run simple task")
 	}
+}
+
+func TestTaskArgs(t *testing.T) {
+	assert := assert.New(t)
+	result := ""
+	tasks := func(p *Project) {
+		p.Task("foo", func(c *Context) {
+			name := c.Args.MustString("name")
+			result = name
+		})
+	}
+
+	godo(tasks, []string{"foo", "--", "--name=gopher"})
+	assert.Equal("gopher", result)
+
+	assert.Panics(func() {
+		godo(tasks, []string{"foo"})
+	})
 }
 
 func TestDependency(t *testing.T) {

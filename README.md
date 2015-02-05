@@ -26,8 +26,14 @@ As an example, create a file **Gododir/Godofile.go** with this content
 
         p.Task("default", D{"hello", "build"})
 
-        p.Task("hello", func() {
-            Bash("echo Hello $USER!")
+        p.Task("hello", func(c *Context) {
+            name := c.Args.ZeroString("name", "n")
+
+            if name == "" {
+                Bash("echo Hello $USER!")
+            } else {
+                fmt.Println("Hello", name)
+            }
         })
 
         p.Task("build", W{"**/*.go"}, func() {
@@ -84,6 +90,50 @@ Task handlers
 
     func() {}           - Simple function handler
     func(c *Context) {} - Handler which accepts the current context
+
+### Task Arguments
+
+Task arguments follow POSIX style flag convention
+(unlike go's built-in flag package). Any command line arguments
+succeeding `--` are passed to each task. Note, arguments before `--`
+are reserved for `godo`.
+
+As an example,
+
+```go
+p.Task("hello", func(c *Context) {
+    # "(none)" is the default value
+    name := c.Args.MayString("(none)", "name", "n")
+    fmt.Println("Hello", name)
+})
+```
+
+running
+
+```sh
+# prints "Hello (none)"
+godo hello
+
+# prints "Hello dude" using POSIX style flags
+godo hello -- --name=dude
+godo hello -- -n dude
+```
+
+Args functions are categorized as
+
+*  `Must*` - Argument must be set by user
+
+        c.Args.MustInt("number", "n")
+
+*  `May*` - If argument is not set, default to first value in function call
+
+        // defaults to 100
+        c.Args.MayInt(100, "number", "n")
+
+*  `Zero*` - If argument is not set, default to zero value
+
+        // defaults to 0
+        c.Args.ZeroInt(100, "number", "n")
 
 ## Exec functions
 

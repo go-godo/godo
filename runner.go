@@ -5,21 +5,24 @@ import (
 	"os"
 	"sync"
 
-	flag "github.com/ogier/pflag"
+	"github.com/mgutz/minimist"
 )
 
-var watching = flag.BoolP("watch", "w", false, "")
-var help = flag.BoolP("help", "h", false, "")
-var verbose = flag.Bool("verbose", false, "")
-var version = flag.BoolP("version", "v", false, "")
+var watching bool
+var help bool
+var verbose bool
+var version bool
 
 // DebounceMs is the default time (1500 ms) to debounce task events in watch mode.
 var DebounceMs int64
 var waitgroup sync.WaitGroup
 var waitExit bool
+var argm minimist.ArgMap
+var contextArgm minimist.ArgMap
 
 func init() {
 	DebounceMs = 2000
+
 }
 
 // Usage prints a usage screen with task descriptions.
@@ -43,21 +46,39 @@ Usage: godo [flags] [task...]
 
 // Godo runs a project of tasks.
 func Godo(tasksFunc func(*Project)) {
-	flag.Parse()
+	godo(tasksFunc, nil)
+}
+
+func godo(tasksFunc func(*Project), argv []string) {
+	if argv == nil {
+		argm = minimist.Parse()
+	} else {
+		argm = minimist.ParseArgv(argv)
+	}
+
+	help = argm.ZeroBool("help", "h", "?")
+	verbose = argm.ZeroBool("verbose")
+	version = argm.ZeroBool("version", "v")
+	watching = argm.ZeroBool("watch", "w")
+	contextArgm = minimist.ParseArgv(argm.Unparsed())
 
 	project := NewProject(tasksFunc)
 
-	if *help {
+	if help {
 		Usage(project.usage())
 		os.Exit(0)
 	}
 
-	if *version {
+	if version {
 		fmt.Printf("godo %s", Version)
 	}
 
 	// Run each task including their dependencies.
-	args := flag.Args()
+	args := []string{}
+	for _, v := range argm.Leftover() {
+		args = append(args, fmt.Sprintf("%v", v))
+	}
+
 	if len(args) == 0 {
 		if project.Tasks["default"] != nil {
 			args = append(args, "default")
@@ -76,7 +97,7 @@ func Godo(tasksFunc func(*Project)) {
 		project.Run(name)
 	}
 
-	if *watching {
+	if watching {
 		if project.Watch(args, true) {
 			waitgroup.Add(1)
 			waitExit = true

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/mgutz/goa"
 	f "github.com/mgutz/goa/filter"
 	"github.com/mgutz/str"
@@ -52,6 +54,11 @@ func Tasks(p *Project) {
 
 	p.Task("whoami", func() {
 		Run("whoami")
+	})
+
+	p.Task("hello", func(c *Context) {
+		name := c.Args.MayString("default value", "name", "n")
+		fmt.Println("Hello", name)
 	})
 }
 
