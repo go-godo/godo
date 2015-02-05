@@ -15,45 +15,46 @@ To install
 
 As an example, create a file **Gododir/Godofile.go** with this content
 
-    package main
+```go
+package main
 
-    import (
-        . "gopkg.in/godo.v1"
-    )
+import (
+    . "gopkg.in/godo.v1"
+)
 
-    func Tasks(p *Project) {
-        Env = "GOPATH=.vendor::$GOPATH PG_PASSWORD=dev"
+func Tasks(p *Project) {
+    Env = "GOPATH=.vendor::$GOPATH PG_PASSWORD=dev"
 
-        p.Task("default", D{"hello", "build"})
+    p.Task("default", D{"hello", "build"})
 
-        p.Task("hello", func(c *Context) {
-            name := c.Args.ZeroString("name", "n")
+    p.Task("hello", func(c *Context) {
+        name := c.Args.ZeroString("name", "n")
 
-            if name == "" {
-                Bash("echo Hello $USER!")
-            } else {
-                fmt.Println("Hello", name)
-            }
-        })
+        if name == "" {
+            Bash("echo Hello $USER!")
+        } else {
+            fmt.Println("Hello", name)
+        }
+    })
 
-        p.Task("build", W{"**/*.go"}, func() {
-            Run("GOOS=linux GOARCH=amd64 go build", In{"cmd/server"})
-        })
+    p.Task("build", W{"**/*.go"}, func() {
+        Run("GOOS=linux GOARCH=amd64 go build", In{"cmd/server"})
+    })
 
-        p.Task("views", W{"templates/**/*.go.html"}, func() {
-            Run("razor templates")
-        })
+    p.Task("views", W{"templates/**/*.go.html"}, func() {
+        Run("razor templates")
+    })
 
-        p.Task("server", D{"views"}, W{"server/**/*.go", "cmd/server/*.{go,json}"}, Debounce(3000), func() {
-            // rebuilds and restarts the process when a watched file changes
-            Start("main.go", In{"cmd/server"})
-        })
-    }
+    p.Task("server", D{"views"}, W{"server/**/*.go", "cmd/server/*.{go,json}"}, Debounce(3000), func() {
+        // rebuilds and restarts the process when a watched file changes
+        Start("main.go", In{"cmd/server"})
+    })
+}
 
-    func main() {
-        Godo(Tasks)
-    }
-
+func main() {
+    Godo(Tasks)
+}
+```
 
 To run "server" task from parent dir of `tasks/`
 
@@ -69,8 +70,10 @@ To run the "default" task which runs "hello" and "views"
 
 Task names may add a "?" suffix to execute only once even when watching
 
-    // build once regardless of number of dependents
-    p.Task("build?", func() {})
+```go
+// build once regardless of number of dependents
+p.Task("build?", func() {})
+```
 
 Task options
 
@@ -122,18 +125,24 @@ godo hello -- -n dude
 Args functions are categorized as
 
 *  `Must*` - Argument must be set by user
-
-        c.Args.MustInt("number", "n")
+    
+    ```go
+c.Args.MustInt("number", "n")
+```
 
 *  `May*` - If argument is not set, default to first value in function call
 
-        // defaults to 100
-        c.Args.MayInt(100, "number", "n")
+    ```go
+    // defaults to 100
+    c.Args.MayInt(100, "number", "n")
+```
 
 *  `Zero*` - If argument is not set, default to zero value
 
-        // defaults to 0
-        c.Args.ZeroInt(100, "number", "n")
+    ```go
+// defaults to 0
+c.Args.ZeroInt(100, "number", "n")
+```
 
 ## Exec functions
 
@@ -143,32 +152,42 @@ Bash functions uses the bash executable and may not run on all OS.
 
 Run a bash script string. The script can be multine line with continutation.
 
-    Bash(`
-        echo -n $USER
-        echo some really long \
-            command
-    `)
+```go
+Bash(`
+    echo -n $USER
+    echo some really long \
+        command
+`)
+```
 
 Run a bash script and capture STDOUT and STDERR.
 
-    output, err := BashOutput(`echo -n $USER`)
+```go
+output, err := BashOutput(`echo -n $USER`)
+```
 
 ### Run
 
 Run `go build` inside of cmd/app and set environment variables.
 
-    Run(`GOOS=linux GOARCH=amd64 go build`, In{"cmd/app"})
+```go
+Run(`GOOS=linux GOARCH=amd64 go build`, In{"cmd/app"})
+```
 
 Run and capture STDOUT and STDERR
 
-    output, err := RunOutput("whoami")
+```go
+output, err := RunOutput("whoami")
+```
 
 ### Start
 
 Start an async command. If the executable has suffix ".go" then it will be "go install"ed then executed.
 Use this for watching a server task.
 
-    Start("main.go", In{"cmd/app"})
+```go
+Start("main.go", In{"cmd/app"})
+```
 
 Godo tracks the process ID of started processes to restart the app gracefully.
 
@@ -177,39 +196,48 @@ Godo tracks the process ID of started processes to restart the app gracefully.
 To run many commands inside a directory, use `Inside` instead of the `In` option.
 `Inside` changes the working directory.
 
-    Inside("somedir", func() {
-        Run("...")
-        Bash("...")
-    })
+```go
+Inside("somedir", func() {
+    Run("...")
+    Bash("...")
+})
+```
 
 ## Godofile Run-Time Environment
 
 To specify whether to inherit from parent's process environment,
 set `InheritParentEnv`. This setting defaults to true
 
-    InheritParentEnv = false
+```go
+InheritParentEnv = false
+```
 
 To specify the base environment for your tasks, set `Env`.
 Separate with whitespace or newlines.
 
-    Env = `
-        GOPATH=.vendor::$GOPATH
-        PG_USER=mario
-    `
+```go
+Env = `
+    GOPATH=.vendor::$GOPATH
+    PG_USER=mario
+`
+```
 
 TIP: Set the `Env` when using a dependency manager like `godep`
 
-    wd, _ := os.Getwd()
-    ws := path.Join(wd, "Godeps/_workspace")
-    Env = fmt.Sprintf("GOPATH=%s::$GOPATH", ws)
-
+```go
+wd, _ := os.Getwd()
+ws := path.Join(wd, "Godeps/_workspace")
+Env = fmt.Sprintf("GOPATH=%s::$GOPATH", ws)
+```
 Functions can add or override environment variables as part of the command string.
 Note that environment variables are set before the executable similar to a shell;
 however, the `Run` and `Start` functions do not use a shell.
 
-    p.Task("build", func() {
-        Run("GOOS=linux GOARCH=amd64 go build" )
-    })
+```go
+p.Task("build", func() {
+    Run("GOOS=linux GOARCH=amd64 go build" )
+})
+```
 
 The effective environment for exec functions is: `parent (if inherited) <- Env <- func parsed env`
 
