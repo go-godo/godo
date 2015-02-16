@@ -63,6 +63,16 @@ func TestEnvironment(t *testing.T) {
 	SetEnviron("", true)
 }
 
+func TestQuotedVar(t *testing.T) {
+	// set back to defaults
+	defer SetEnviron("", true)
+	env := effectiveEnv([]string{`FOO="a=bar b=bah c=baz"`})
+	v := getEnv(env, "FOO", false)
+	if v != `"a=bar b=bah c=baz"` {
+		t.Errorf("Quoted var failed %q", v)
+	}
+}
+
 func TestExpansion(t *testing.T) {
 	SetEnviron(`
 		FOO=foo

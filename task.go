@@ -16,7 +16,7 @@ import (
 // A Task is an operation performed on a user's project directory.
 type Task struct {
 	Name           string
-	Description    string
+	description    string
 	Dependencies   []string
 	Handler        func()
 	ContextHandler func(*Context)
@@ -34,7 +34,7 @@ type Task struct {
 	// Complete indicates whether this task has already ran. This flag is
 	// ignored in watch mode.
 	Complete bool
-	Debounce int64
+	debounce int64
 	RunOnce  bool
 }
 
@@ -141,4 +141,28 @@ func (task *Task) RunWithEvent(logName string, e *watcher.FileEvent) {
 	}
 
 	task.Complete = true
+}
+
+// Debounce is minimum milliseconds before task can run again
+func (task *Task) Debounce(ms int64) *Task {
+	if ms > 0 {
+		task.debounce = ms
+	}
+	return task
+}
+
+// Watch a set of glob file patterns.
+func (task *Task) Watch(globs ...string) *Task {
+	if len(globs) > 0 {
+		task.WatchGlobs = globs
+	}
+	return task
+}
+
+// Description sets the description for the task.
+func (task *Task) Description(desc string) *Task {
+	if desc != "" {
+		task.description = desc
+	}
+	return task
 }

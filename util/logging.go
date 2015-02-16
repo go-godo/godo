@@ -2,12 +2,14 @@ package util
 
 import (
 	"fmt"
-	"github.com/mgutz/ansi"
 	"runtime"
+
+	"github.com/mgutz/ansi"
 )
 
 var cyan = ansi.ColorFunc("cyan")
 var red = ansi.ColorFunc("red+b")
+var yellow = ansi.ColorFunc("yellow+b")
 var redInverse = ansi.ColorFunc("white:red")
 var gray = ansi.ColorFunc("black+h")
 var magenta = ansi.ColorFunc("magenta+h")
@@ -40,4 +42,9 @@ func Error(group string, format string, any ...interface{}) {
 func Panic(group string, format string, any ...interface{}) {
 	fmt.Printf(redInverse(group) + " ")
 	fmt.Printf(redInverse(format), any...)
+}
+
+// Deprecate writes a deprecation warning.
+func Deprecate(message string) {
+	fmt.Printf(yellow("godo") + " " + message)
 }

@@ -9,8 +9,7 @@ import (
 	. "gopkg.in/godo.v1"
 )
 
-// Tasks is local project.
-func Tasks(p *Project) {
+func tasks(p *Project) {
 
 	p.Task("dist", D{"test", "lint"})
 
@@ -56,12 +55,12 @@ func Tasks(p *Project) {
 		Run("whoami")
 	})
 
-	p.Task("hello", func(c *Context) {
+	p.Task("hello", Debounce(3000), W{"*.hello"}, func(c *Context) {
 		name := c.Args.MayString("default value", "name", "n")
 		fmt.Println("Hello", name)
 	})
 }
 
 func main() {
-	Godo(Tasks)
+	Godo(tasks)
 }

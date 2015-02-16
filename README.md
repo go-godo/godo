@@ -22,7 +22,7 @@ import (
     . "gopkg.in/godo.v1"
 )
 
-func Tasks(p *Project) {
+func tasks(p *Project) {
     Env = "GOPATH=.vendor::$GOPATH PG_PASSWORD=dev"
 
     p.Task("default", D{"hello", "build"})
@@ -36,22 +36,23 @@ func Tasks(p *Project) {
         }
     })
 
-    p.Task("build", W{"**/*.go"}, func() {
+    p.Task("build", func() {
         Run("GOOS=linux GOARCH=amd64 go build", In{"cmd/server"})
-    })
+    }).Watch("**/*.go")
 
-    p.Task("views", W{"templates/**/*.go.html"}, func() {
+    p.Task("views", func() {
         Run("razor templates")
-    })
+    }).Watch("templates/**/*.go.html")
 
-    p.Task("server", D{"views"}, W{"server/**/*.go", "cmd/server/*.{go,json}"}, Debounce(3000), func() {
+    p.Task("server", D{"views"}, func() {
         // rebuilds and restarts the process when a watched file changes
         Start("main.go", In{"cmd/server"})
-    })
+    }).Watch("server/**/*.go", "cmd/server/*.{go,json}").
+       Debounce(3000)
 }
 
 func main() {
-    Godo(Tasks)
+    Godo(tasks)
 }
 ```
 
@@ -77,7 +78,6 @@ p.Task("build?", func() {})
 Task options
 
     D{} or Dependencies{} - dependent tasks which run before task
-    Debounce()            - minimum milliseconds before task can run again
     W{} or Watches{}      - array of glob file patterns to watch
 
         /**/   - match zero or more directories
@@ -86,7 +86,7 @@ Task options
         ?      - match a single non-separator char
         **/    - match any directory, start of pattern only
         /**    - match any in this directory, end of pattern only
-        !      - removes files from resultset, start of pattern only
+        !      - removes files from result set, start of pattern only
 
 Task handlers
 
@@ -124,7 +124,7 @@ godo hello -- -n dude
 Args functions are categorized as
 
 *  `Must*` - Argument must be set by user or panic.
-    
+
     ```go
 c.Args.MustInt("number", "n")
 ```

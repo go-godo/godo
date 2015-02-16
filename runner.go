@@ -12,6 +12,7 @@ var watching bool
 var help bool
 var verbose bool
 var version bool
+var deprecatedWarnings bool
 
 // DebounceMs is the default time (1500 ms) to debounce task events in watch mode.
 var DebounceMs int64
@@ -31,6 +32,7 @@ func Usage(tasks string) {
 	format := `godo %s - do task(s)
 
 Usage: godo [flags] [task...]
+  -D             Print deprecated warnings
   -h, --help     This screen
       --verbose  Log verbosely
   -v, --version  Print version
@@ -60,6 +62,7 @@ func godo(tasksFunc func(*Project), argv []string) {
 	verbose = argm.ZeroBool("verbose")
 	version = argm.ZeroBool("version", "v")
 	watching = argm.ZeroBool("watch", "w")
+	deprecatedWarnings = argm.ZeroBool("D")
 	contextArgm = minimist.ParseArgv(argm.Unparsed())
 
 	project := NewProject(tasksFunc)

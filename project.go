@@ -62,7 +62,7 @@ func (project *Project) namespaceTaskName(name string) (namespace string, taskNa
 }
 
 func (project *Project) debounce(task *Task) bool {
-	debounceMs := task.Debounce
+	debounceMs := task.debounce
 	if debounceMs == 0 {
 		debounceMs = DebounceMs
 	}
@@ -135,7 +135,7 @@ func (project *Project) usage() string {
 
 	for _, name := range names {
 		task := m[name]
-		description := task.Description
+		description := task.description
 		if description == "" {
 			if len(task.Dependencies) > 0 {
 				description = "Runs {" + strings.Join(task.Dependencies, ", ") + ", " + name + "} tasks"
@@ -156,6 +156,36 @@ func (project *Project) Use(namespace string, tasksFunc func(*Project)) {
 	project.Namespace[namespace] = proj
 }
 
+func printDeprecatedWatchWarning(name string, globs []string) {
+	if !deprecatedWarnings {
+		return
+	}
+	util.Deprecate(fmt.Sprintf(`W{} and Watch{} are deprecated. Use Task#Watch()
+	p.Task("%s", func(){
+	}).Watch(%q)
+`, name, globs[0]))
+}
+
+func printDeprecatedDebounceWarning(name string, ms int64) {
+	if !deprecatedWarnings {
+		return
+	}
+	util.Deprecate(fmt.Sprintf(`Debounce() option is deprecated. Use Task#Debounce()
+	p.Task("%s", func(){
+	}).Debounce(%d)
+`, name, ms))
+}
+
+func printDeprecatedDescriptionWarning(name string, desc string) {
+	if !deprecatedWarnings {
+		return
+	}
+	util.Deprecate(fmt.Sprintf(`Description option is deprecated. Use Task#Description()
+	p.Task("%s", func(){
+	}).Description(%q)
+`, name, desc))
+}
+
 // Task adds a task to the project.
 func (project *Project) Task(name string, args ...interface{}) *Task {
 	runOnce := false
@@ -170,21 +200,25 @@ func (project *Project) Task(name string, args ...interface{}) *Task {
 		default:
 			util.Panic("project", "unexpected type %T\n", t) // %T prints whatever type t has
 		case Watch:
-			task.WatchGlobs = t
+			task.Watch(t...)
+			printDeprecatedWatchWarning(name, t)
 		case W:
-			task.WatchGlobs = t
+			task.Watch(t...)
+			printDeprecatedWatchWarning(name, t)
 		case Dependencies:
 			task.Dependencies = t
 		case D:
 			task.Dependencies = t
 		case Debounce:
-			task.Debounce = int64(t)
+			task.Debounce(int64(t))
+			printDeprecatedDebounceWarning(name, int64(t))
 		case func():
 			task.Handler = t
 		case func(*Context):
 			task.ContextHandler = t
 		case string:
-			task.Description = t
+			task.Description(t)
+			printDeprecatedDescriptionWarning(name, t)
 		}
 	}
 	project.Tasks[name] = task
@@ -197,7 +231,6 @@ func watchTask(root string, logName string, handler func(e *watcher.FileEvent)) 
 	if err != nil {
 		util.Panic("project", "%v\n", err)
 	}
-	//waitTime := time.Duration(0.1 * float64(time.Second))
 	watchr.WatchRecursive(root)
 	watchr.ErrorHandler = func(err error) {
 		util.Error("project", "%v\n", err)
@@ -220,8 +253,6 @@ func watchTask(root string, logName string, handler func(e *watcher.FileEvent)) 
 			continue
 		}
 		handler(event)
-		// prevent multiple restart in short time
-		//time.Sleep(waitTime)
 	}
 }
 

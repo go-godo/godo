@@ -70,7 +70,7 @@ func interpolateEnv(env []string, kv string) string {
 
 func getEnv(env []string, key string, checkParent bool) string {
 	for _, kv := range env {
-		pair := strings.Split(kv, "=")
+		pair := splitKV(kv)
 		if pair[0] == key {
 			return pair[1]
 		}
@@ -82,16 +82,28 @@ func getEnv(env []string, key string, checkParent bool) string {
 	return ""
 }
 
+func splitKV(kv string) []string {
+	index := strings.Index(kv, "=")
+	if index < 0 {
+		return nil
+	}
+
+	return []string{
+		kv[0:index],
+		kv[index+1:],
+	}
+}
+
 // upsertenv updates or inserts a key=value pair into an environment.
 func upsertenv(env *[]string, kv string) {
-	pair := strings.Split(kv, "=")
-	if len(pair) != 2 {
+	pair := splitKV(kv)
+	if pair == nil {
 		return
 	}
 
 	set := false
 	for i, item := range *env {
-		ipair := strings.Split(item, "=")
+		ipair := splitKV(item)
 		if ipair[0] == pair[0] {
 			(*env)[i] = interpolateEnv(*env, kv)
 			set = true
@@ -134,8 +146,8 @@ func parseStringEnv(s string) []string {
 	}
 
 	s = str.Clean(s)
-	pairs := strings.Split(s, " ")
-	for _, kv := range pairs {
+	argv := str.ToArgv(s)
+	for _, kv := range argv {
 		if !strings.Contains(kv, "=") {
 			continue
 		}

@@ -97,7 +97,7 @@ func killSpawned(command string) {
 
 	err := process.Kill()
 	if err != nil {
-		util.Error("Start", "Could not kill existing process %+v\n", process)
+		util.Error("Start", "Could not kill existing process %+v\n%s\n", process, err.Error())
 		return
 	}
 }
