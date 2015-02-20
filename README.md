@@ -19,6 +19,7 @@ As an example, create a file **Gododir/Godofile.go** with this content
 package main
 
 import (
+	"fmt"
     . "gopkg.in/godo.v1"
 )
 
