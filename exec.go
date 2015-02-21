@@ -1,6 +1,7 @@
 package godo
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"strconv"
@@ -22,6 +23,21 @@ func Bash(script string, wd ...In) error {
 // BashOutput is the same as Bash and it captures stdout and stderr.
 func BashOutput(script string, wd ...In) (string, error) {
 	return bash(true, script, wd)
+}
+
+// BashVerbose prints the script that is being executed and it's output (stdout, stderr).
+func BashVerbose(script string, wd ...In) error {
+	fmt.Printf("$ %s\n", script)
+	output, err := bash(true, script, wd)
+	return err
+}
+
+// BashVerboseOutput prints the script that is being executed and it's output (stdout, stderr).
+// Afterwards, the output is returned as string.
+func BashVerboseOutput(script string, wd ...In) (string, error) {
+	fmt.Printf("$ %s\n", script)
+	output, err := bash(true, script, wd)
+	return output, err
 }
 
 // Run runs a command with an an option to set the working directory.
