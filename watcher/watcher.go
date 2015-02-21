@@ -19,7 +19,7 @@ const (
 	// receiving watch events for the same file
 	IgnoreThresholdRange = 50 * 1000000 // convert to ms
 	// WatchDelay is the time to poll the file system
-	WatchDelay = 1500 * time.Millisecond
+	WatchDelay = 1100 * time.Millisecond
 )
 
 // Watcher is a wrapper around which adds some additional features:

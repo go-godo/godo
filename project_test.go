@@ -1,6 +1,7 @@
 package godo
 
 import (
+	"fmt"
 	"io/ioutil"
 	"sort"
 	"strings"
@@ -21,6 +22,34 @@ func TestSimpleTask(t *testing.T) {
 	project.Run("foo")
 	if result != "A" {
 		t.Error("should have run simple task")
+	}
+}
+
+func TestErrorReturn(t *testing.T) {
+	result := ""
+	tasks := func(p *Project) {
+		p.Task("err", func() error {
+			return fmt.Errorf("error caught")
+		})
+
+		p.Task("foo", D{"err"}, func() {
+			result = "A"
+		})
+	}
+
+	project := NewProject(tasks)
+	err := project.Run("foo")
+	if result == "A" {
+		t.Error("parent task should not run on error")
+	}
+	if err.Error() != `"foo>err": error caught` {
+		t.Error("dependency errors should stop parent")
+	}
+
+	project.reset()
+	err = project.Run("err")
+	if err.Error() != `"err": error caught` {
+		t.Error("error was not handle properly")
 	}
 }
 

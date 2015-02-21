@@ -1,6 +1,7 @@
 package godo
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -15,11 +16,10 @@ import (
 
 // A Task is an operation performed on a user's project directory.
 type Task struct {
-	Name           string
-	description    string
-	Dependencies   []string
-	Handler        func()
-	ContextHandler func(*Context)
+	Name         string
+	description  string
+	Dependencies []string
+	Handler      Handler
 
 	// Watches are the files are watched. On change the task is rerun. For example `**/*.less`
 	// Usually Watches and Sources are the same.
@@ -92,10 +92,10 @@ func (task *Task) isWatchedFile(e *watcher.FileEvent) bool {
 // RunWithEvent runs this task when triggered from a watch.
 // *e* FileEvent contains information about the file/directory which changed
 // in watch mode.
-func (task *Task) RunWithEvent(logName string, e *watcher.FileEvent) {
+func (task *Task) RunWithEvent(logName string, e *watcher.FileEvent) error {
 	if task.RunOnce && task.Complete {
 		//util.Debug(task.Name, "Already ran\n")
-		return
+		return nil
 	}
 
 	start := time.Now()
@@ -110,7 +110,7 @@ func (task *Task) RunWithEvent(logName string, e *watcher.FileEvent) {
 	if e != nil {
 		rebuilt = "rebuilt "
 		if !task.isWatchedFile(e) {
-			return
+			return nil
 		}
 		//util.Debug(logName, "%+v %d\n", e, e.UnixNano)
 		if verbose {
@@ -118,21 +118,20 @@ func (task *Task) RunWithEvent(logName string, e *watcher.FileEvent) {
 		}
 	}
 
+	var err error
 	log := true
 	if task.Handler != nil {
-		task.Handler()
-	} else if task.ContextHandler != nil {
-		context := &Context{Task: task, Args: contextArgm}
-		if e != nil {
-			context.FileEvent = e
+		context := Context{Task: task, Args: contextArgm}
+		err = task.Handler.Handle(&context)
+		if err != nil {
+			return fmt.Errorf("%q: %s", logName, err.Error())
 		}
-		task.ContextHandler(context)
 	} else if len(task.Dependencies) > 0 {
 		// no need to log if just dependency
 		log = false
 	} else {
 		util.Info(task.Name, "Ignored. Task does not have a handler or dependencies.\n")
-		return
+		return nil
 	}
 
 	elapsed := time.Now().Sub(start)
@@ -141,6 +140,7 @@ func (task *Task) RunWithEvent(logName string, e *watcher.FileEvent) {
 	}
 
 	task.Complete = true
+	return nil
 }
 
 // Debounce is minimum milliseconds before task can run again

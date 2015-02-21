@@ -55,6 +55,22 @@ func tasks(p *Project) {
 		Run("whoami")
 	})
 
+	pass := 0
+	p.Task("err2", func() error {
+		if pass == 2 {
+			return fmt.Errorf("oh oh")
+		}
+		return nil
+	})
+
+	p.Task("err", D{"err2"}, func() error {
+		pass++
+		if pass == 1 {
+			return nil
+		}
+		return fmt.Errorf("foo err")
+	}).Watch("test/*.txt")
+
 	p.Task("hello", Debounce(3000), W{"*.hello"}, func(c *Context) {
 		name := c.Args.MayString("default value", "name", "n")
 		fmt.Println("Hello", name)

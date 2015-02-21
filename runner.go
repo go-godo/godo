@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/mgutz/minimist"
+	"gopkg.in/godo.v1/util"
 )
 
 var watching bool
@@ -73,7 +74,8 @@ func godo(tasksFunc func(*Project), argv []string) {
 	}
 
 	if version {
-		fmt.Printf("godo %s", Version)
+		fmt.Printf("godo %s\n", Version)
+		os.Exit(0)
 	}
 
 	// Run each task including their dependencies.
@@ -97,7 +99,11 @@ func godo(tasksFunc func(*Project), argv []string) {
 	}
 
 	for _, name := range args {
-		project.Run(name)
+		err := project.Run(name)
+		if err != nil {
+			util.Error("ERR", "%s\n", err.Error())
+			os.Exit(1)
+		}
 	}
 
 	if watching {

@@ -34,6 +34,14 @@ func NewProject(tasksFunc func(*Project)) *Project {
 	return project
 }
 
+// reset resets project state for TESTING ONLY
+func (project *Project) reset() {
+	for _, task := range project.Tasks {
+		task.Complete = false
+	}
+	project.lastRun = map[string]int64{}
+}
+
 func (project *Project) mustTask(name string) (*Project, *Task) {
 	namespace, taskName := project.namespaceTaskName(name)
 
@@ -76,13 +84,13 @@ func (project *Project) debounce(task *Task) bool {
 }
 
 // Run runs a task by name.
-func (project *Project) Run(name string) {
-	project.run(name, name, nil)
+func (project *Project) Run(name string) error {
+	return project.run(name, name, nil)
 }
 
 // RunWithEvent runs a task by name and adds FileEvent e to the context.
-func (project *Project) runWithEvent(name string, logName string, e *watcher.FileEvent) {
-	project.run(name, logName, e)
+func (project *Project) runWithEvent(name string, logName string, e *watcher.FileEvent) error {
+	return project.run(name, logName, e)
 }
 
 // run runs the project, executing any tasks named on the command line.
@@ -96,17 +104,20 @@ func (project *Project) run(name string, logName string, e *watcher.FileEvent) e
 		return nil
 	}
 
-	// Run each task including their dependencies.
+	// run dependencies first
 	for _, depName := range task.Dependencies {
 		namespace, taskName := project.namespaceTaskName(depName)
 		proj := project.Namespace[namespace]
 		if proj == nil {
 			fmt.Errorf("Project was not loaded for \"%s\" task", name)
 		}
-		project.Namespace[namespace].runWithEvent(taskName, name+">"+depName, nil)
+		err := project.Namespace[namespace].runWithEvent(taskName, name+">"+depName, nil)
+		if err != nil {
+			return err
+		}
 	}
-	task.RunWithEvent(logName, e)
-	return nil
+	// then run the task itself
+	return task.RunWithEvent(logName, e)
 }
 
 // usage returns a string for usage screen
@@ -213,9 +224,13 @@ func (project *Project) Task(name string, args ...interface{}) *Task {
 			task.Debounce(int64(t))
 			printDeprecatedDebounceWarning(name, int64(t))
 		case func():
-			task.Handler = t
+			task.Handler = VoidHandlerFunc(t)
+		case func() error:
+			task.Handler = HandlerFunc(t)
 		case func(*Context):
-			task.ContextHandler = t
+			task.Handler = VoidContextHandlerFunc(t)
+		case func(*Context) error:
+			task.Handler = ContextHandlerFunc(t)
 		case string:
 			task.Description(t)
 			printDeprecatedDescriptionWarning(name, t)
@@ -318,7 +333,10 @@ func (project *Project) Watch(names []string, isParent bool) bool {
 			for _, pth := range paths {
 				go func(path string) {
 					watchTask(path, logName, func(e *watcher.FileEvent) {
-						project.run(taskname, taskname, e)
+						err := project.run(taskname, taskname, e)
+						if err != nil {
+							util.Error("ERR", "%s\n", err.Error())
+						}
 					})
 				}(pth)
 			}

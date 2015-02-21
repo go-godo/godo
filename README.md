@@ -91,8 +91,13 @@ Task options
 
 Task handlers
 
-    func() {}           - Simple function handler
-    func(c *Context) {} - Handler which accepts the current context
+    func()                  - Simple function handler
+    func(c *Context)        - Handler which accepts the current context
+    func() error
+    func(c *Context) error
+
+Any error return in task or its dependencies stops the pipeline and
+`godo` exits with 1 except in watch mode.
 
 ### Task Arguments
 
