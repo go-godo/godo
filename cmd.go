@@ -56,6 +56,9 @@ func (gcmd *command) run() (output string, err error) {
 		return
 	}
 
+	if verbose {
+		util.Debug("#", "%s\n", gcmd.commandstr)
+	}
 	err = cmd.Run()
 	if gcmd.captureOutput {
 		return gcmd.recorder.String(), err
@@ -76,6 +79,9 @@ func (gcmd *command) runAsync() (err error) {
 	waitExit = true
 	waitgroup.Add(1)
 	go func() {
+		if verbose {
+			util.Debug("#", "%s\n", gcmd.commandstr)
+		}
 		err = cmd.Start()
 		if err != nil {
 			return
