@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/mgutz/str"
+	"gopkg.in/godo.v1/util"
 )
 
 // In is used by Bash, Run and Start to set the working directory
@@ -83,6 +84,10 @@ func bash(captureOutput bool, script string, wd []In) (output string, err error)
 		commandstr:    script,
 	}
 
+	if verbose {
+		util.Debug("$", "%s\n", script)
+	}
+
 	return gcmd.run()
 }
 
@@ -100,6 +105,10 @@ func run(captureOutput bool, commandstr string, wd []In) (output string, err err
 		argv:          argv,
 		captureOutput: captureOutput,
 		commandstr:    commandstr,
+	}
+
+	if verbose {
+		util.Debug("$", "%s\n", commandstr)
 	}
 	return cmd.run()
 }
