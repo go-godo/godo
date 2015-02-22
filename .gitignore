@@ -4,3 +4,5 @@ tmp/
 _*
 node_modules
 example/dist
+tasks/godobin
+tasks/godobin.exe

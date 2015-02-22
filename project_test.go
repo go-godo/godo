@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mgutz/str"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -168,10 +169,16 @@ func TestCalculateWatchPaths(t *testing.T) {
 }
 
 func TestInside(t *testing.T) {
-	Inside("./test", func() {
-		out, _ := RunOutput("bash foo.sh")
-		if out != "FOOBAR" {
-			t.Error("Inside failed")
+	Inside("test", func() {
+		var out string
+		if isWindows {
+			out, _ = RunOutput("foo.cmd")	
+		} else {
+			out, _ = RunOutput("bash foo.sh")
+		}
+		
+		if str.Clean(out) != "FOOBAR" {
+			t.Error("Inside failed. Got", fmt.Sprintf("%q", out))
 		}
 	})
 
@@ -182,6 +189,9 @@ func TestInside(t *testing.T) {
 }
 
 func TestBash(t *testing.T) {
+	if isWindows {
+		return
+	}
 	out, _ := BashOutput(`echo -n foobar`)
 	if out != "foobar" {
 		t.Error("Simple bash failed. Got", out)

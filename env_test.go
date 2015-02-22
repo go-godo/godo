@@ -1,14 +1,26 @@
 package godo
 
 import (
+	"fmt"
 	"os"
+	"runtime"
 	"testing"
+
+	"github.com/mgutz/str"
 )
 
-func TestEnvironment(t *testing.T) {
-	SetEnviron("USER=$USER:godo", true)
+var isWindows = runtime.GOOS == "windows"
 
-	user := os.Getenv("USER")
+func TestEnvironment(t *testing.T) {
+	var user string
+	if isWindows {
+		user = os.Getenv("USERNAME")
+		os.Setenv("USER", user)
+	} else {
+		user = os.Getenv("USER")
+	}
+
+	SetEnviron("USER=$USER:godo", true)
 	env := effectiveEnv(nil)
 	if !sliceContains(env, "USER="+user+":godo") {
 		t.Error("Environment interpolation failed", env)
@@ -92,8 +104,17 @@ func TestExpansion(t *testing.T) {
 func TestInheritedRunEnv(t *testing.T) {
 	os.Setenv("TEST_RUN_ENV", "fubar")
 	SetEnviron("", true)
-	output, _ := RunOutput(`FOO=bar BAH=baz bash -c "echo -n $TEST_RUN_ENV $FOO"`)
-	if output != "fubar bar" {
-		t.Error("Environment was not inherited! Got", output)
+
+	var output string
+
+	if isWindows {	
+		output, _ = RunOutput(`FOO=bar BAH=baz cmd /C "echo %TEST_RUN_ENV% %FOO%"`)	
+	} else {
+		output, _ = RunOutput(`FOO=bar BAH=baz bash -c "echo -n $TEST_RUN_ENV $FOO"`)	
+	}
+
+	
+	if str.Clean(output) != "fubar bar" {
+		t.Error("Environment was not inherited! Got", fmt.Sprintf("%q", output))
 	}
 }

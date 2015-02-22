@@ -70,5 +70,4 @@
 //
 //      func() {}           - Simple function handler
 //      func(c *Context) {} - Handler which accepts the current context
-
 package godo

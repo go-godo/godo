@@ -24,7 +24,7 @@ import (
 )
 
 func tasks(p *Project) {
-    Env = "GOPATH=.vendor::$GOPATH PG_PASSWORD=dev"
+    Env = `GOPATH=.vendor::$GOPATH`
 
     p.Task("default", D{"hello", "build"})
 
@@ -37,19 +37,26 @@ func tasks(p *Project) {
         }
     })
 
-    p.Task("build", func() {
-        Run("GOOS=linux GOARCH=amd64 go build", In{"cmd/server"})
+    p.Task("assets?", func() {
+        // The "?" tells Godo to run this task ONLY ONCE regardless of
+        // how many tasks depend on it. In this case watchify watches
+        // on its own.
+		Run("watchify public/js/index.js d -o dist/js/app.bundle.js")
+    }).Watch("public/**/*.{css,js,html}")
+
+    p.Task("build", D{"views", "assets"}, func() error {
+        return Run("GOOS=linux GOARCH=amd64 go build", In{"cmd/server"})
     }).Watch("**/*.go")
 
-    p.Task("views", func() {
-        Run("razor templates")
-    }).Watch("templates/**/*.go.html")
-
-    p.Task("server", D{"views"}, func() {
-        // rebuilds and restarts the process when a watched file changes
+    p.Task("server", D{"views", "assets"}, func() {
+        // rebuilds and restarts when a watched file changes
         Start("main.go", In{"cmd/server"})
     }).Watch("server/**/*.go", "cmd/server/*.{go,json}").
        Debounce(3000)
+
+    p.Task("views", func() error {
+        return Run("razor templates")
+    }).Watch("templates/**/*.go.html")
 }
 
 func main() {
@@ -61,11 +68,11 @@ To run "server" task from parent dir of `tasks/`
 
     godo server
 
-To rerun "server" and its dependencies whenever any `*.go.html`,  `*.go` or `*.json` file changes
+To rerun "server" and its dependencies whenever any of their watched files change
 
     godo server --watch
 
-To run the "default" task which runs "hello" and "views"
+To run the "default" task which runs "hello" and "build"
 
     godo
 
@@ -73,7 +80,7 @@ Task names may add a "?" suffix to execute only once even when watching
 
 ```go
 // build once regardless of number of dependents
-p.Task("build?", func() {})
+p.Task("assets?", func() {})
 ```
 
 Task options
@@ -91,13 +98,13 @@ Task options
 
 Task handlers
 
-    func()                  - Simple function handler
-    func(c *Context)        - Handler which accepts the current context
-    func() error
-    func(c *Context) error
+    func()                  - Simple function handler, don't care about return
+    func() error            - Simple function handler
+    func(c *Context)        - Task with context, don't care about return
+    func(c *Context) error  - Task with context
 
 Any error return in task or its dependencies stops the pipeline and
-`godo` exits with 1 except in watch mode.
+`godo` exits with status code of 1, except in watch mode.
 
 ### Task Arguments
 
@@ -148,6 +155,12 @@ c.Args.MustInt("number", "n")
 // defaults to 0
 c.Args.ZeroInt("number", "n")
 ```
+
+## godobin
+
+`godo` compiles `Godofile.go` to `godobin` (`godobin.exe` on Windows) whenever
+`Godofile.go` changes. The binary file is built into the same directory as
+`Godofile.go` and should be ignored by adding the path to `.gitignore`.
 
 ## Exec functions
 

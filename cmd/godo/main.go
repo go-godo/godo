@@ -7,12 +7,17 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
+	"time"
 
+	"github.com/mgutz/minimist"
 	"github.com/mgutz/str"
 	"gopkg.in/godo.v1"
 	"gopkg.in/godo.v1/util"
 )
+
+var isWindows = runtime.GOOS == "windows"
 
 func checkError(err error, format string, args ...interface{}) {
 	if err != nil {
@@ -34,6 +39,18 @@ func isPackageMain(data []byte) bool {
 }
 
 func main() {
+	// cfg := profile.Config{
+	// 	BlockProfile:   true,
+	// 	CPUProfile:     true,
+	// 	MemProfile:     true,
+	// 	NoShutdownHook: true, // do not hook SIGINT
+	// }
+
+	// // p.Stop() must be called before the program exits to
+	// // ensure profiling information is written to disk.
+	// p := profile.Start(&cfg)
+	// defer p.Stop()
+
 	// legacy version used tasks/
 	godoFiles := []string{"Gododir/Godofile.go", "tasks/Godofile.go"}
 	src := ""
@@ -57,18 +74,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	mainFile := buildMain(rel)
-	if mainFile != "" {
-		src = mainFile
-		defer os.RemoveAll(filepath.Dir(mainFile))
-	}
-	cmd := "go run " + src + " " + strings.Join(os.Args[1:], " ")
+	exe := buildMain(rel)
+	cmd := exe + " " + strings.Join(os.Args[1:], " ")
+	cmd = str.Clean(cmd)
 	// errors are displayed by tasks
+
 	godo.Run(cmd)
 }
 
-func buildMain(src string) string {
-	tempFile := ""
+type godorc struct {
+	ModTime time.Time
+	Size    int64
+}
+
+func mustBeMain(src string) {
 	data, err := ioutil.ReadFile(src)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -76,48 +95,68 @@ func buildMain(src string) string {
 	}
 
 	if !hasMain(data) {
-		if isPackageMain(data) {
-			msg := `%s is not runnable. Rename package OR make it runnable by adding
+		msg := `%s is not runnable. Rename package OR make it runnable by adding
 
-    func main() {
-        godo.Godo(Tasks)
-    }
-`
-			fmt.Printf(msg, src)
-			os.Exit(1)
-		}
+	func main() {
+		godo.Godo(tasks)
+	}
+	`
+		fmt.Printf(msg, src)
+		os.Exit(1)
+	}
 
-		template := `
-	        package main
-	        import (
-	            "gopkg.in/godo.v1"
-	            pkg "{{package}}"
-	        )
-	        func main() {
-	            godo.Godo(pkg.Tasks)
-	        }
-	    `
-		packageName, err := util.PackageName(src)
+	if !isPackageMain(data) {
+		msg := `%s is not runnable. It must be package main`
+		fmt.Printf(msg, src)
+		os.Exit(1)
+	}
+}
+
+func buildMain(src string) string {
+	mustBeMain(src)
+
+	exeFile := "godobin"
+	if isWindows {
+		exeFile = "godobin.exe"
+	}
+
+	dir := filepath.Dir(src)
+	exe := filepath.Join(dir, exeFile)
+	reasonFormat := "Godofile changed. Rebuilding %s...\n"
+
+	argm := minimist.Parse()
+	rebuild := argm.ZeroBool("rebuild")
+	if rebuild {
+		os.Remove(exe)
+	}
+
+	// see if last run exists .godoinfo
+	fiExe, err := os.Stat(exe)
+	build := os.IsNotExist(err)
+	if build {
+		reasonFormat = "Building %s...\n"
+	}
+
+	fiGodofile, err := os.Stat(src)
+	if os.IsNotExist(err) {
+		log.Fatalln(err)
+		os.Exit(1)
+	}
+	build = build || fiExe.ModTime().Before(fiGodofile.ModTime())
+
+	if build {
+		util.Debug("godo", reasonFormat, exe)
+
+		err := godo.Run("go build -a -o "+exeFile, godo.In{dir})
 		if err != nil {
 			panic(err)
 		}
-		code := str.Template(template, map[string]interface{}{
-			"package": filepath.ToSlash(packageName),
-		})
-		//log.Println("DBG template", code)
-		tempDir, err := ioutil.TempDir("", "godo")
-		if err != nil {
-			panic("Could not create temp directory")
-		}
-		//log.Printf("code\n %s\n", code)
-		tempFile = filepath.Join(tempDir, "Godofile_main.go")
-		err = ioutil.WriteFile(tempFile, []byte(code), 0644)
-		if err != nil {
-			log.Panicf("Could not write temp file %s\n", tempFile)
-		}
-
-		src = tempFile
-		return src
 	}
-	return ""
+
+	if rebuild {
+		util.Info("godo", "ok")
+		os.Exit(0)
+	}
+
+	return exe
 }
