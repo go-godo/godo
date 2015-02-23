@@ -115,7 +115,7 @@ func mustBeMain(src string) {
 func buildMain(src string) string {
 	mustBeMain(src)
 
-	exeFile := "godobin"
+	exeFile := "godobin-" + godo.Version
 	if isWindows {
 		exeFile = "godobin.exe"
 	}

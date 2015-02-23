@@ -158,9 +158,9 @@ c.Args.ZeroInt("number", "n")
 
 ## godobin
 
-`godo` compiles `Godofile.go` to `godobin` (`godobin.exe` on Windows) whenever
+`godo` compiles `Godofile.go` to `godobin-VERSION` (`godobin-VERSION.exe` on Windows) whenever
 `Godofile.go` changes. The binary file is built into the same directory as
-`Godofile.go` and should be ignored by adding the path to `.gitignore`.
+`Godofile.go` and should be ignored by adding the path `godobin*` to `.gitignore`.
 
 ## Exec functions
 
