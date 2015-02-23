@@ -126,6 +126,7 @@ func (task *Task) RunWithEvent(logName string, e *watcher.FileEvent) error {
 		if err != nil {
 			return fmt.Errorf("%q: %s", logName, err.Error())
 		}
+
 	} else if len(task.Dependencies) > 0 {
 		// no need to log if just dependency
 		log = false

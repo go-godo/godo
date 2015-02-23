@@ -102,7 +102,8 @@ func run(captureOutput bool, commandstr string, wd []In) (output string, err err
 		commandstr:    commandstr,
 	}
 
-	return cmd.run()
+	s, err := cmd.run()
+	return s, err
 }
 
 func getWd(wd []In) (string, error) {

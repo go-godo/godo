@@ -46,24 +46,30 @@ func (gcmd *command) toExecCmd() (cmd *exec.Cmd, err error) {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 	}
+
+	if verbose {
+		if Env != "" {
+			util.Debug("#", "Env: %s\n", Env)
+		}
+		util.Debug("#", "%s\n", gcmd.commandstr)
+	}
+
 	return cmd, nil
 }
 
-func (gcmd *command) run() (output string, err error) {
-
+func (gcmd *command) run() (string, error) {
+	var err error
 	cmd, err := gcmd.toExecCmd()
 	if err != nil {
-		return
+		return "", err
 	}
 
-	if verbose {
-		util.Debug("#", "%s\n", gcmd.commandstr)
-	}
 	err = cmd.Run()
 	if gcmd.captureOutput {
 		return gcmd.recorder.String(), err
 	}
 	return "", err
+
 }
 
 func (gcmd *command) runAsync() (err error) {
@@ -79,9 +85,6 @@ func (gcmd *command) runAsync() (err error) {
 	waitExit = true
 	waitgroup.Add(1)
 	go func() {
-		if verbose {
-			util.Debug("#", "%s\n", gcmd.commandstr)
-		}
 		err = cmd.Start()
 		if err != nil {
 			return

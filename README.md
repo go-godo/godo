@@ -118,20 +118,25 @@ As an example,
 ```go
 p.Task("hello", func(c *Context) {
     // "(none)" is the default value
-    name := c.Args.MayString("(none)", "name", "n")
-    fmt.Println("Hello", name)
+    msg := c.Args.MayString("(none)", "message", "msg", "m")
+    var name string
+    if len(c.Args.Leftover() == 1) {
+        name = c.Args.Leftover()[0]
+    }
+    fmt.Println(msg, name)
 })
 ```
 
 running
 
 ```sh
-# prints "Hello (none)"
+# prints "(none)"
 godo hello
 
 # prints "Hello dude" using POSIX style flags
-godo hello -- --name=dude
-godo hello -- -n dude
+godo hello -- dude --message Hello
+godo hello -- dude --msg Hello
+godo hello -- -m Hello dude
 ```
 
 Args functions are categorized as

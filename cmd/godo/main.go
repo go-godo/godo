@@ -39,18 +39,6 @@ func isPackageMain(data []byte) bool {
 }
 
 func main() {
-	// cfg := profile.Config{
-	// 	BlockProfile:   true,
-	// 	CPUProfile:     true,
-	// 	MemProfile:     true,
-	// 	NoShutdownHook: true, // do not hook SIGINT
-	// }
-
-	// // p.Stop() must be called before the program exits to
-	// // ensure profiling information is written to disk.
-	// p := profile.Start(&cfg)
-	// defer p.Stop()
-
 	// legacy version used tasks/
 	godoFiles := []string{"Gododir/Godofile.go", "tasks/Godofile.go"}
 	src := ""

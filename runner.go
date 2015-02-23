@@ -35,6 +35,7 @@ func Usage(tasks string) {
 Usage: godo [flags] [task...]
   -D             Print deprecated warnings
   -h, --help     This screen
+      --rebuild  Rebuild Godofile
       --verbose  Log verbosely
   -v, --version  Print version
   -w, --watch    Watch task and dependencies`
