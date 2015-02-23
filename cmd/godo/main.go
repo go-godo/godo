@@ -117,7 +117,7 @@ func buildMain(src string) string {
 
 	exeFile := "godobin-" + godo.Version
 	if isWindows {
-		exeFile = "godobin.exe"
+		exeFile += ".exe"
 	}
 
 	dir := filepath.Dir(src)
