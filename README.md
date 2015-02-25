@@ -226,6 +226,20 @@ Inside("somedir", func() {
 })
 ```
 
+## User Input
+
+To get plain string
+
+```go
+user := Prompt("user: ")
+```
+
+To get password
+
+```go
+password := PromptPassword("password: ")
+```
+
 ## Godofile Run-Time Environment
 
 To specify whether to inherit from parent's process environment,
