@@ -10,32 +10,34 @@ import (
 
 	"github.com/howeyc/gopass"
 	"github.com/mgutz/str"
+	"gopkg.in/godo.v1/util"
 )
 
-// In is used by Bash, Run and Start to set the working directory
+// In is used by Bash, Run and Start to set the working directory.
+// This is DEPRECATED use M{"$in": "somedir"} instead.
 type In []string
 
 // Bash executes a bash script (string) with an option to set
 // the working directory.
-func Bash(script string, wd ...In) error {
-	_, err := bash(false, script, wd)
+func Bash(script string, options ...interface{}) error {
+	_, err := bash(false, script, options)
 	return err
 }
 
 // BashOutput is the same as Bash and it captures stdout and stderr.
-func BashOutput(script string, wd ...In) (string, error) {
-	return bash(true, script, wd)
+func BashOutput(script string, options ...interface{}) (string, error) {
+	return bash(true, script, options)
 }
 
 // Run runs a command with an an option to set the working directory.
-func Run(commandstr string, wd ...In) error {
-	_, err := run(false, commandstr, wd)
+func Run(commandstr string, options ...interface{}) error {
+	_, err := run(false, commandstr, options)
 	return err
 }
 
 // RunOutput is same as Run and it captures stdout and stderr.
-func RunOutput(commandstr string, wd ...In) (string, error) {
-	return run(true, commandstr, wd)
+func RunOutput(commandstr string, options ...interface{}) (string, error) {
+	return run(true, commandstr, options)
 }
 
 // Start starts an async command. If executable has suffix ".go" then it will
@@ -44,16 +46,24 @@ func RunOutput(commandstr string, wd ...In) (string, error) {
 // If Start is called with the same command it kills the previous process.
 //
 // The working directory is optional.
-func Start(commandstr string, wd ...In) error {
-	dir, err := getWd(wd)
+func Start(commandstr string, options ...interface{}) error {
+	m := getOptionsMap(options)
+	dir, err := getWorkingDir(m)
 	if err != nil {
-		return err
+		return nil
+	}
+
+	if strings.Contains(commandstr, "{{") {
+		commandstr, err = util.StrTemplate(commandstr, m)
+		if err != nil {
+			return err
+		}
 	}
 
 	executable, argv, env := splitCommand(commandstr)
 	isGoFile := strings.HasSuffix(executable, ".go")
 	if isGoFile {
-		err = Run("go install", wd...)
+		err = Run("go install", options...)
 		if err != nil {
 			return err
 		}
@@ -70,12 +80,33 @@ func Start(commandstr string, wd ...In) error {
 	return cmd.runAsync()
 }
 
+func getWorkingDir(m map[string]interface{}) (string, error) {
+	var wd string
+	if m != nil {
+		if d, ok := m["$in"].(string); ok {
+			wd = d
+		}
+	}
+	if wd != "" {
+		return wd, nil
+	}
+	return os.Getwd()
+}
+
 // Bash executes a bash string. Use backticks for multiline. To execute as shell script,
 // use Run("bash script.sh")
-func bash(captureOutput bool, script string, wd []In) (output string, err error) {
-	dir, err := getWd(wd)
+func bash(captureOutput bool, script string, options []interface{}) (output string, err error) {
+	m := getOptionsMap(options)
+	dir, err := getWorkingDir(m)
 	if err != nil {
 		return
+	}
+
+	if strings.Contains(script, "{{") {
+		script, err = util.StrTemplate(script, m)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	gcmd := &command{
@@ -89,11 +120,20 @@ func bash(captureOutput bool, script string, wd []In) (output string, err error)
 	return gcmd.run()
 }
 
-func run(captureOutput bool, commandstr string, wd []In) (output string, err error) {
-	dir, err := getWd(wd)
+func run(captureOutput bool, commandstr string, options []interface{}) (output string, err error) {
+	m := getOptionsMap(options)
+	dir, err := getWorkingDir(m)
 	if err != nil {
 		return
 	}
+
+	if strings.Contains(commandstr, "{{") {
+		commandstr, err = util.StrTemplate(commandstr, m)
+		if err != nil {
+			return "", err
+		}
+	}
+
 	executable, argv, env := splitCommand(commandstr)
 
 	cmd := &command{
@@ -109,12 +149,26 @@ func run(captureOutput bool, commandstr string, wd []In) (output string, err err
 	return s, err
 }
 
-func getWd(wd []In) (string, error) {
-	if len(wd) == 1 {
-		return wd[0][0], nil
+func getOptionsMap(args []interface{}) map[string]interface{} {
+	if len(args) == 0 {
+		return nil
+	} else if m, ok := args[0].(map[string]interface{}); ok {
+		return m
+	} else if m, ok := args[0].(M); ok {
+		return m
+	} else if in, ok := args[0].(In); ok {
+		// legacy functions used to pass in In{}
+		return map[string]interface{}{"$in": in[0]}
 	}
-	return os.Getwd()
+	return nil
 }
+
+// func getWd(wd []In) (string, error) {
+// 	if len(wd) == 1 {
+// 		return wd[0][0], nil
+// 	}
+// 	return os.Getwd()
+// }
 
 func splitCommand(command string) (executable string, argv, env []string) {
 	argv = str.ToArgv(command)

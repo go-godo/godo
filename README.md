@@ -50,7 +50,7 @@ func tasks(p *Project) {
 
     p.Task("server", D{"views", "assets"}, func() {
         // rebuilds and restarts when a watched file changes
-        Start("main.go", In{"cmd/server"})
+        Start("main.go", M{"$in": "cmd/server"})
     }).Watch("server/**/*.go", "cmd/server/*.{go,json}").
        Debounce(3000)
 
@@ -169,11 +169,15 @@ c.Args.ZeroInt("number", "n")
 
 ## Exec functions
 
+All of these functions accept a `map[string]interface{}` or `M` for
+options. Option keys that start with `"$"` are reserved for `godo`.
+Other fields can be used as context for template.
+
 ### Bash
 
 Bash functions uses the bash executable and may not run on all OS.
 
-Run a bash script string. The script can be multine line with continutation.
+Run a bash script string. The script can be multiline line with continutation.
 
 ```go
 Bash(`
@@ -181,6 +185,12 @@ Bash(`
     echo some really long \
         command
 `)
+```
+
+Bash can use templates Go templates
+
+```go
+Bash(`echo -n {{.name}}`, M{"name": "mario", "$in": "cmd/bar"})
 ```
 
 Run a bash script and capture STDOUT and STDERR.
@@ -194,7 +204,13 @@ output, err := BashOutput(`echo -n $USER`)
 Run `go build` inside of cmd/app and set environment variables.
 
 ```go
-Run(`GOOS=linux GOARCH=amd64 go build`, In{"cmd/app"})
+Run(`GOOS=linux GOARCH=amd64 go build`, M{"$in": "cmd/app"})
+```
+
+Run can use Go templates
+
+```go
+Run(`echo -n {{.name}}`, M{"name": "mario", "$in": "cmd/app"})
 ```
 
 Run and capture STDOUT and STDERR
@@ -209,14 +225,14 @@ Start an async command. If the executable has suffix ".go" then it will be "go i
 Use this for watching a server task.
 
 ```go
-Start("main.go", In{"cmd/app"})
+Start("main.go", M{"$in": "cmd/app"})
 ```
 
 Godo tracks the process ID of started processes to restart the app gracefully.
 
 ### Inside
 
-To run many commands inside a directory, use `Inside` instead of the `In` option.
+To run many commands inside a directory, use `Inside` instead of the `$in` option.
 `Inside` changes the working directory.
 
 ```go

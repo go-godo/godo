@@ -1,6 +1,7 @@
 package util
 
 import (
+	"bytes"
 	"errors"
 	"io/ioutil"
 	"os"
@@ -22,7 +23,7 @@ func PackageName(sourceFile string) (string, error) {
 	}
 	sourceFile, err := filepath.Abs(sourceFile)
 	if err != nil {
-		Panic("Could not convert to absolute path: %s", sourceFile)
+		Panic("util", "Could not convert to absolute path: %s", sourceFile)
 	}
 
 	gopath := os.Getenv("GOPATH")
@@ -69,4 +70,21 @@ func Template(src string, dest string, data map[string]interface{}) {
 	if err != nil {
 		Panic("template", "Could not execute template %s\n%v\n", src, err)
 	}
+}
+
+// StrTemplate reads a go template and writes it to dist given data.
+func StrTemplate(src string, data map[string]interface{}) (string, error) {
+	tpl := template.New("t")
+	tpl, err := tpl.Parse(src)
+	if err != nil {
+		return "", err
+	}
+
+	var buf bytes.Buffer
+	err = tpl.Execute(&buf, data)
+	if err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
 }
