@@ -187,7 +187,7 @@ Bash(`
 `)
 ```
 
-Bash can use templates Go templates
+Bash can use Go templates
 
 ```go
 Bash(`echo -n {{.name}}`, M{"name": "mario", "$in": "cmd/bar"})
