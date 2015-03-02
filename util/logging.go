@@ -2,49 +2,56 @@ package util
 
 import (
 	"fmt"
-	"runtime"
+	"io"
 
+	"github.com/mattn/go-colorable"
 	"github.com/mgutz/ansi"
 )
 
-var cyan = ansi.ColorFunc("cyan")
-var red = ansi.ColorFunc("red+b")
-var yellow = ansi.ColorFunc("yellow+b")
-var redInverse = ansi.ColorFunc("white:red")
-var gray = ansi.ColorFunc("black+h")
-var magenta = ansi.ColorFunc("magenta+h")
+var cyan func(string) string
+var red func(string) string
+var yellow func(string) string
+var redInverse func(string) string
+var gray func(string) string
+var magenta func(string) string
+var writer io.Writer
 
 func init() {
-	if runtime.GOOS == "windows" {
-		ansi.DisableColors(true)
-	}
+	ansi.DisableColors(false)
+	cyan = ansi.ColorFunc("cyan")
+	red = ansi.ColorFunc("red+b")
+	yellow = ansi.ColorFunc("yellow+b")
+	redInverse = ansi.ColorFunc("white:red")
+	gray = ansi.ColorFunc("black+h")
+	magenta = ansi.ColorFunc("magenta+h")
+	writer = colorable.NewColorableStdout()
 }
 
 // Debug writes a debug statement to stdout.
 func Debug(group string, format string, any ...interface{}) {
-	fmt.Print(gray(group) + " ")
-	fmt.Printf(gray(format), any...)
+	fmt.Fprint(writer, gray(group)+" ")
+	fmt.Fprintf(writer, gray(format), any...)
 }
 
 // Info writes an info statement to stdout.
 func Info(group string, format string, any ...interface{}) {
-	fmt.Print(cyan(group) + " ")
-	fmt.Printf(format, any...)
+	fmt.Fprint(writer, cyan(group)+" ")
+	fmt.Fprintf(writer, format, any...)
 }
 
 // Error writes an error statement to stdout.
 func Error(group string, format string, any ...interface{}) {
-	fmt.Printf(red(group) + " ")
-	fmt.Printf(red(format), any...)
+	fmt.Fprintf(writer, red(group)+" ")
+	fmt.Fprintf(writer, red(format), any...)
 }
 
 // Panic writes an error statement to stdout.
 func Panic(group string, format string, any ...interface{}) {
-	fmt.Printf(redInverse(group) + " ")
-	fmt.Printf(redInverse(format), any...)
+	fmt.Fprintf(writer, redInverse(group)+" ")
+	fmt.Fprintf(writer, redInverse(format), any...)
 }
 
 // Deprecate writes a deprecation warning.
 func Deprecate(message string) {
-	fmt.Printf(yellow("godo") + " " + message)
+	fmt.Fprintf(writer, yellow("godo")+" "+message)
 }
