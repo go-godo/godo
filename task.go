@@ -112,9 +112,8 @@ func (task *Task) RunWithEvent(logName string, e *watcher.FileEvent) error {
 		if !task.isWatchedFile(e) {
 			return nil
 		}
-		//util.Debug(logName, "%+v %d\n", e, e.UnixNano)
 		if verbose {
-			util.Debug(logName, "%s %d\n", e.String(), e.UnixNano)
+			util.Debug(logName, "%s\n", e.String())
 		}
 	}
 

@@ -36,6 +36,7 @@ func newFileEvent(op int, path string, unixNano int64) *FileEvent {
 	return &FileEvent{Event: op, Path: path, UnixNano: unixNano}
 }
 
+// String returns an eye friendly version of this event.
 func (fe *FileEvent) String() string {
 	var status string
 	switch fe.Event {
@@ -48,11 +49,11 @@ func (fe *FileEvent) String() string {
 	case PERM:
 		status = "permissions changed"
 	case NOEXIST:
-		status = "doesn't exist"
+		status = "does not exist"
 	case NOPERM:
-		status = "has invalid permissions"
+		status = "is not accessible (permission)"
 	case INVALID:
 		status = "is invalid"
 	}
-	return fmt.Sprintf("%s %s\n", fe.Path, status)
+	return fmt.Sprintf("%s %s", fe.Path, status)
 }

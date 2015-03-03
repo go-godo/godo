@@ -36,8 +36,8 @@ Usage: godo [flags] [task...]
   -D             Print deprecated warnings
   -h, --help     This screen
       --rebuild  Rebuild Godofile
-      --verbose  Log verbosely
-  -v, --version  Print version
+  -v  --verbose  Log verbosely
+  -V, --version  Print version
   -w, --watch    Watch task and dependencies`
 
 	if tasks == "" {
@@ -61,8 +61,8 @@ func godo(tasksFunc func(*Project), argv []string) {
 	}
 
 	help = argm.ZeroBool("help", "h", "?")
-	verbose = argm.ZeroBool("verbose")
-	version = argm.ZeroBool("version", "v")
+	verbose = argm.ZeroBool("verbose", "v")
+	version = argm.ZeroBool("version", "V")
 	watching = argm.ZeroBool("watch", "w")
 	deprecatedWarnings = argm.ZeroBool("D")
 	contextArgm = minimist.ParseArgv(argm.Unparsed())

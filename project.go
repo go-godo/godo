@@ -111,7 +111,7 @@ func (project *Project) run(name string, logName string, e *watcher.FileEvent) e
 		if proj == nil {
 			fmt.Errorf("Project was not loaded for \"%s\" task", name)
 		}
-		err := project.Namespace[namespace].runWithEvent(taskName, name+">"+depName, nil)
+		err := proj.runWithEvent(taskName, name+">"+depName, nil)
 		if err != nil {
 			return err
 		}

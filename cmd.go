@@ -10,7 +10,8 @@ import (
 	"gopkg.in/godo.v1/util"
 )
 
-var spawnedProcesses = make(map[string]*os.Process)
+// Proccesses are the processes spawned by Start()
+var Processes = make(map[string]*os.Process)
 
 type command struct {
 	// original command string
@@ -91,7 +92,10 @@ func (gcmd *command) runAsync() (err error) {
 			fmt.Println(err.Error())
 			return
 		}
-		spawnedProcesses[id] = cmd.Process
+		Processes[id] = cmd.Process
+		if verbose {
+			util.Debug("#", "Processes[%q] added\n", id)
+		}
 		c := make(chan error, 1)
 
 		c <- cmd.Wait()
@@ -102,14 +106,18 @@ func (gcmd *command) runAsync() (err error) {
 }
 
 func killSpawned(command string) {
-	process := spawnedProcesses[command]
+	process := Processes[command]
 	if process == nil {
 		return
 	}
 
 	err := process.Kill()
+	delete(Processes, command)
 	if err != nil {
 		util.Error("Start", "Could not kill existing process %+v\n%s\n", process, err.Error())
 		return
+	}
+	if verbose {
+		util.Debug("#", "Processes[%q] killed\n", command)
 	}
 }
