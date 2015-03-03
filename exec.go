@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -68,7 +67,7 @@ func Start(commandstr string, options ...interface{}) error {
 		if err != nil {
 			return err
 		}
-		executable = path.Base(dir)
+		executable = filepath.Base(dir)
 	}
 
 	cmd := &command{

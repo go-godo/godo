@@ -231,10 +231,31 @@ func TestBash(t *testing.T) {
 
 func TestLegacyIn(t *testing.T) {
 
+	var cat = "cat"
+	if isWindows {
+		cat = "cmd /c type"
+	}
+	//// Run
+
+	// in V2 BashOutput accepts an options map
+
+	out, err := RunOutput(cat+" foo.txt", M{"$in": "test"})
+	assert.NoError(t, err)
+	assert.Equal(t, "asdf", str.Clean(out))
+
+	// need to support V1 though
+	out, err = RunOutput(cat+" foo.txt", In{"test"})
+	assert.NoError(t, err)
+	assert.Equal(t, "asdf", str.Clean(out))
+
+	if isWindows {
+		return
+	}
+
 	//// Bash
 
 	// in V2 BashOutput accepts an options map
-	out, err := BashOutput("cat foo.txt", M{"$in": "test"})
+	out, err = BashOutput("cat foo.txt", M{"$in": "test"})
 	assert.NoError(t, err)
 	assert.Equal(t, "asdf", str.Clean(out))
 
@@ -242,28 +263,25 @@ func TestLegacyIn(t *testing.T) {
 	out, err = BashOutput("cat foo.txt", In{"test"})
 	assert.NoError(t, err)
 	assert.Equal(t, "asdf", str.Clean(out))
-
-	//// Run
-
-	// in V2 BashOutput accepts an options map
-	out, err = RunOutput("cat foo.txt", M{"$in": "test"})
-	assert.NoError(t, err)
-	assert.Equal(t, "asdf", str.Clean(out))
-
-	// need to support V1 though
-	out, err = RunOutput("cat foo.txt", In{"test"})
-	assert.NoError(t, err)
-	assert.Equal(t, "asdf", str.Clean(out))
 }
 
 func TestTemplatedCommands(t *testing.T) {
+	echo := "echo"
+	if isWindows {
+		echo = "cmd /c echo"
+
+	}
 	// in V2 BashOutput accepts an options map
-	out, err := BashOutput("echo {{.name}}", M{"name": "oy"})
+	out, err := RunOutput(echo+" {{.name}}", M{"name": "oy"})
 	assert.NoError(t, err)
 	assert.Equal(t, "oy", str.Clean(out))
 
+	if isWindows {
+		return
+	}
+
 	// in V2 BashOutput accepts an options map
-	out, err = RunOutput("echo {{.name}}", M{"name": "oy"})
+	out, err = BashOutput("echo {{.name}}", M{"name": "oy"})
 	assert.NoError(t, err)
 	assert.Equal(t, "oy", str.Clean(out))
 }

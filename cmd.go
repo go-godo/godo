@@ -2,6 +2,7 @@ package godo
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"os/exec"
 
@@ -82,15 +83,17 @@ func (gcmd *command) runAsync() (err error) {
 
 	// kills previously spawned process (if exists)
 	killSpawned(id)
-	waitExit = true
 	waitgroup.Add(1)
+	waitExit = true
 	go func() {
 		err = cmd.Start()
 		if err != nil {
+			fmt.Println(err.Error())
 			return
 		}
 		spawnedProcesses[id] = cmd.Process
 		c := make(chan error, 1)
+
 		c <- cmd.Wait()
 		_ = <-c
 		waitgroup.Done()
