@@ -228,7 +228,12 @@ Use this for watching a server task.
 Start("main.go", M{"$in": "cmd/app"})
 ```
 
-Godo tracks the process ID of started processes to restart the app gracefully.
+Godo tracks the process ID of started processes in the map `Processes` to restart the app gracefully.
+
+If `Start` is not working as expected with go files, verify `go install -a main.go` works in the 
+directory of the file, replacing "main.go" with your file. Most issues around (re)starts are 
+due to being outside of `GOPATH` or multiple packages in a directory. Set `Env` if `GOPATH`
+needs to be adjusted.
 
 ### Inside
 
