@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -63,7 +64,7 @@ func Start(commandstr string, options ...interface{}) error {
 	executable, argv, env := splitCommand(commandstr)
 	isGoFile := strings.HasSuffix(executable, ".go")
 	if isGoFile {
-		err = Run("go install", options...)
+		err = Run("go install -a", options...)
 		if err != nil {
 			return err
 		}
@@ -81,6 +82,11 @@ func Start(commandstr string, options ...interface{}) error {
 }
 
 func getWorkingDir(m map[string]interface{}) (string, error) {
+	pwd, err := os.Getwd()
+	if err != nil {
+		return "", nil
+	}
+
 	var wd string
 	if m != nil {
 		if d, ok := m["$in"].(string); ok {
@@ -88,9 +94,14 @@ func getWorkingDir(m map[string]interface{}) (string, error) {
 		}
 	}
 	if wd != "" {
-		return wd, nil
+		path := filepath.Join(pwd, wd)
+		_, err := os.Stat(path)
+		if err == nil {
+			return filepath.Join(path), nil
+		}
+		return "", fmt.Errorf("working dir does not exist: %s", path)
 	}
-	return os.Getwd()
+	return pwd, nil
 }
 
 // Bash executes a bash string. Use backticks for multiline. To execute as shell script,

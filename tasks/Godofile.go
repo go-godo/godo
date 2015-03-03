@@ -75,6 +75,10 @@ func tasks(p *Project) {
 		name := c.Args.MayString("default value", "name", "n")
 		fmt.Println("Hello", name)
 	})
+
+	p.Task("server", func() {
+		Start("main.go", M{"$in": "cmd/example"})
+	}).Watch("cmd/example/**/*.go")
 }
 
 func main() {
