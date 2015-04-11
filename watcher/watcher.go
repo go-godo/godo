@@ -3,14 +3,14 @@ package watcher
 
 import (
 	//"fmt"
-	"fmt"
+
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/gokyle/fswatch"
+	"gopkg.in/godo.v2/watcher/fswatch"
 	"github.com/mgutz/str"
 )
 
@@ -18,9 +18,12 @@ const (
 	// IgnoreThresholdRange is the amount of time in ns to ignore when
 	// receiving watch events for the same file
 	IgnoreThresholdRange = 50 * 1000000 // convert to ms
-	// WatchDelay is the time to poll the file system
-	WatchDelay = 1100 * time.Millisecond
 )
+
+// SetWatchDelay sets the watch delay
+func SetWatchDelay(delay time.Duration) {
+	fswatch.WatchDelay = delay
+}
 
 // Watcher is a wrapper around which adds some additional features:
 //
@@ -34,7 +37,7 @@ type Watcher struct {
 	Event chan *FileEvent
 	Error chan error
 	//default ignore all file start with "."
-	IsIgnorePath func(path string) bool
+	IgnorePathFn func(path string) bool
 	//default is nil,if is nil ,error send through Error chan,if is not nil,error handle by this func
 	ErrorHandler func(err error)
 	isClosed     bool
@@ -43,7 +46,7 @@ type Watcher struct {
 
 // NewWatcher creates an instance of watcher.
 func NewWatcher(bufferSize int) (watcher *Watcher, err error) {
-	fswatch.WatchDelay = WatchDelay
+
 	fswatcher := fswatch.NewAutoWatcher()
 
 	if err != nil {
@@ -53,9 +56,8 @@ func NewWatcher(bufferSize int) (watcher *Watcher, err error) {
 		Watcher:      fswatcher,
 		Error:        make(chan error, 10),
 		Event:        make(chan *FileEvent, bufferSize),
-		IsIgnorePath: DefaultIsIgnorePath,
+		IgnorePathFn: DefaultIgnorePathFn,
 	}
-	go watcher.eventLoop()
 	return
 }
 
@@ -70,20 +72,6 @@ func (w *Watcher) Close() error {
 	return nil
 }
 
-var eventText = map[int]string{
-	fswatch.CREATED:  "was created",
-	fswatch.DELETED:  "was deleted",
-	fswatch.MODIFIED: "was modified",
-	fswatch.PERM:     "permissions changed",
-	fswatch.NOEXIST:  "doesn't exist",
-	fswatch.NOPERM:   "has invalid permissions",
-	fswatch.INVALID:  "is invalid",
-}
-
-func debugEvent(event int, path string) {
-	fmt.Printf("%s %s\n", path, eventText[event])
-}
-
 func (w *Watcher) eventLoop() {
 	cache := map[string]*os.FileInfo{}
 	mu := &sync.Mutex{}
@@ -95,17 +83,16 @@ func (w *Watcher) eventLoop() {
 			return
 		}
 
-		//fmt.Printf("event %+v\n", event)
-		if w.IsIgnorePath(event.Path) {
+		// fmt.Printf("event %+v\n", event)
+		if w.IgnorePathFn(event.Path) {
 			continue
 		}
-
-		//debugEvent(event.Event, event.Path)
 
 		// you can not stat a delete file...
 		if event.Event == fswatch.DELETED || event.Event == fswatch.NOEXIST {
 			// adjust with arbitrary value because it was deleted
 			// before it got here
+			//fmt.Println("sending fi wevent", event)
 			w.Event <- newFileEvent(event.Event, event.Path, time.Now().UnixNano()-10)
 			continue
 		}
@@ -130,7 +117,7 @@ func (w *Watcher) eventLoop() {
 			continue
 		}
 
-		//fmt.Println("sending fi", fi.ModTime().UnixNano()/1000000, event.Name)
+		//fmt.Println("sending fi wevent", event)
 		w.Event <- newFileEvent(event.Event, event.Path, fi.ModTime().UnixNano())
 
 		if err != nil {
@@ -141,9 +128,6 @@ func (w *Watcher) eventLoop() {
 			w.errorHandle(err)
 			continue
 		}
-		// if fi.IsDir() {
-		// 	w.WatchRecursive(event.Name)
-		// }
 		// case err := <-w.Watcher.Errors:
 		// 	w.errorHandle(err)
 		// case _ = <-w.quit:
@@ -176,34 +160,44 @@ func (w *Watcher) WatchRecursive(path string) error {
 	if err != nil {
 		return err
 	}
-	folders, err := w.getSubFolders(path)
-	for _, v := range folders {
-		w.Watcher.Add(v)
+
+	_, err = os.Stat(path)
+	if err != nil {
+		return err
 	}
+
+	w.Watcher.Add(path)
+
+	//util.Debug("watcher", "watching %s %s\n", path, time.Now())
 	return nil
 }
 
-func (w *Watcher) getSubFolders(path string) (paths []string, err error) {
-	err = filepath.Walk(path, func(newPath string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if !info.IsDir() {
-			return nil
-		}
-		if w.IsIgnorePath(newPath) {
-			return filepath.SkipDir
-		}
-		paths = append(paths, newPath)
-		return nil
-	})
-	return paths, err
+// Start starts the watcher
+func (w *Watcher) Start() {
+	go w.eventLoop()
 }
 
-// DefaultIsIgnorePath checks whether a path is ignored. Currently defaults
+// func (w *Watcher) getSubFolders(path string) (paths []string, err error) {
+// 	err = filepath.Walk(path, func(newPath string, info os.FileInfo, err error) error {
+// 		if err != nil {
+// 			return err
+// 		}
+
+// 		if !info.IsDir() {
+// 			return nil
+// 		}
+// 		if w.IgnorePathFn(newPath) {
+// 			return filepath.SkipDir
+// 		}
+// 		paths = append(paths, newPath)
+// 		return nil
+// 	})
+// 	return paths, err
+// }
+
+// DefaultIgnorePathFn checks whether a path is ignored. Currently defaults
 // to hidden files on *nix systems, ie they start with a ".".
-func DefaultIsIgnorePath(path string) bool {
+func DefaultIgnorePathFn(path string) bool {
 	if strings.HasPrefix(path, ".") || strings.Contains(path, "/.") {
 		return true
 	}
@@ -213,17 +207,16 @@ func DefaultIsIgnorePath(path string) bool {
 		return true
 	}
 
-	return isDotFile(path) || isVimFile(path)
-}
-
-func isDotFile(path string) bool {
-	if strings.HasPrefix(path, ".") || strings.Contains(path, "/.") {
+	// vim creates random numeric files
+	base := filepath.Base(path)
+	if str.IsNumeric(base) {
 		return true
 	}
 	return false
 }
 
-func isVimFile(path string) bool {
-	base := filepath.Base(path)
-	return str.IsNumeric(base)
+// SetIgnorePathFn sets the function which determines if a path should be
+// skipped when watching.
+func (w *Watcher) SetIgnorePathFn(fn func(string) bool) {
+	w.Watcher.IgnorePathFn = fn
 }

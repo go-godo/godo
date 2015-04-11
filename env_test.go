@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/mgutz/str"
+	"github.com/stretchr/testify/assert"
 )
 
 var isWindows = runtime.GOOS == "windows"
@@ -107,14 +108,43 @@ func TestInheritedRunEnv(t *testing.T) {
 
 	var output string
 
-	if isWindows {	
-		output, _ = RunOutput(`FOO=bar BAH=baz cmd /C "echo %TEST_RUN_ENV% %FOO%"`)	
+	if isWindows {
+		output, _ = RunOutput(`FOO=bar BAH=baz cmd /C "echo %TEST_RUN_ENV% %FOO%"`)
 	} else {
-		output, _ = RunOutput(`FOO=bar BAH=baz bash -c "echo -n $TEST_RUN_ENV $FOO"`)	
+		output, _ = RunOutput(`FOO=bar BAH=baz bash -c "echo -n $TEST_RUN_ENV $FOO"`)
 	}
 
-	
 	if str.Clean(output) != "fubar bar" {
 		t.Error("Environment was not inherited! Got", fmt.Sprintf("%q", output))
 	}
+}
+
+func TestAddToOSEnviron(t *testing.T) {
+	others := []string{"_foo", "_test_bar=bah", "_test_opts=a=b,c=d,*="}
+	assert.Equal(t, "", os.Getenv("_foo"))
+	assert.Equal(t, "", os.Getenv("_test_bar"))
+	assert.Equal(t, "", os.Getenv("_test_opts"))
+	addToOSEnviron(others)
+	assert.Equal(t, "", os.Getenv("_foo"))
+	assert.Equal(t, "bah", os.Getenv("_test_bar"))
+	assert.Equal(t, "a=b,c=d,*=", os.Getenv("_test_opts"))
+}
+
+func TestEnvFromArgs(t *testing.T) {
+	tasks := func(p *Project) {
+		p.Task("foo", nil, func(*Context) {
+			p.Exit(0)
+		})
+	}
+
+	argv := []string{"foo", "a=b", "c=", "d=e=f,g=*"}
+	godoExit(tasks, argv, func(code int) {
+		assert.Equal(t, "b", os.Getenv("a"))
+		assert.Equal(t, "", os.Getenv("c"))
+		assert.Equal(t, "e=f,g=*", os.Getenv("d"))
+
+		os.Setenv("a", "")
+		os.Setenv("c", "")
+		os.Setenv("d", "")
+	})
 }

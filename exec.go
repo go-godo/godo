@@ -9,35 +9,39 @@ import (
 	"strings"
 
 	"github.com/howeyc/gopass"
+	"gopkg.in/godo.v2/util"
 	"github.com/mgutz/str"
-	"gopkg.in/godo.v1/util"
+	"github.com/nozzle/throttler"
 )
 
-// In is used by Bash, Run and Start to set the working directory.
-// This is DEPRECATED use M{"$in": "somedir"} instead.
-type In []string
-
-// Bash executes a bash script (string) with an option to set
-// the working directory.
-func Bash(script string, options ...interface{}) error {
-	_, err := bash(false, script, options)
-	return err
+// Bash executes a bash script (string).
+func Bash(script string, options ...map[string]interface{}) (string, error) {
+	return bash(script, options)
 }
 
-// BashOutput is the same as Bash and it captures stdout and stderr.
-func BashOutput(script string, options ...interface{}) (string, error) {
-	return bash(true, script, options)
+// BashOutput executes a bash script and returns the output
+func BashOutput(script string, options ...map[string]interface{}) (string, error) {
+	if len(options) == 0 {
+		options = append(options, M{"$out": CaptureBoth})
+	} else {
+		options[0]["$out"] = CaptureBoth
+	}
+	return bash(script, options)
 }
 
-// Run runs a command with an an option to set the working directory.
-func Run(commandstr string, options ...interface{}) error {
-	_, err := run(false, commandstr, options)
-	return err
+// Run runs a command.
+func Run(commandstr string, options ...map[string]interface{}) (string, error) {
+	return run(commandstr, options)
 }
 
-// RunOutput is same as Run and it captures stdout and stderr.
-func RunOutput(commandstr string, options ...interface{}) (string, error) {
-	return run(true, commandstr, options)
+// RunOutput runs a command and returns output.
+func RunOutput(commandstr string, options ...map[string]interface{}) (string, error) {
+	if len(options) == 0 {
+		options = append(options, M{"$out": CaptureBoth})
+	} else {
+		options[0]["$out"] = CaptureBoth
+	}
+	return run(commandstr, options)
 }
 
 // Start starts an async command. If executable has suffix ".go" then it will
@@ -46,30 +50,26 @@ func RunOutput(commandstr string, options ...interface{}) (string, error) {
 // If Start is called with the same command it kills the previous process.
 //
 // The working directory is optional.
-func Start(commandstr string, options ...interface{}) error {
-	m := getOptionsMap(options)
-	dir, err := getWorkingDir(m)
+func Start(commandstr string, options ...map[string]interface{}) error {
+	m, dir, _, err := parseOptions(options)
 	if err != nil {
-		return nil
+		return err
 	}
-
 	if strings.Contains(commandstr, "{{") {
 		commandstr, err = util.StrTemplate(commandstr, m)
 		if err != nil {
 			return err
 		}
 	}
-
 	executable, argv, env := splitCommand(commandstr)
 	isGoFile := strings.HasSuffix(executable, ".go")
 	if isGoFile {
-		err = Run("go install -a", options...)
+		_, err = Run("go install -a", m)
 		if err != nil {
 			return err
 		}
 		executable = filepath.Base(dir)
 	}
-
 	cmd := &command{
 		executable: executable,
 		wd:         dir,
@@ -93,23 +93,46 @@ func getWorkingDir(m map[string]interface{}) (string, error) {
 		}
 	}
 	if wd != "" {
-		path := filepath.Join(pwd, wd)
+		var path string
+		if filepath.IsAbs(wd) {
+			path = wd
+		} else {
+			path = filepath.Join(pwd, wd)
+		}
 		_, err := os.Stat(path)
 		if err == nil {
-			return filepath.Join(path), nil
+			return path, nil
 		}
 		return "", fmt.Errorf("working dir does not exist: %s", path)
 	}
 	return pwd, nil
 }
 
+func parseOptions(options []map[string]interface{}) (m map[string]interface{}, dir string, capture int, err error) {
+	if options == nil {
+		m = map[string]interface{}{}
+	} else {
+		m = options[0]
+	}
+
+	dir, err = getWorkingDir(m)
+	if err != nil {
+		return nil, "", 0, err
+	}
+
+	if n, ok := m["$out"].(int); ok {
+		capture = n
+	}
+
+	return m, dir, capture, nil
+}
+
 // Bash executes a bash string. Use backticks for multiline. To execute as shell script,
 // use Run("bash script.sh")
-func bash(captureOutput bool, script string, options []interface{}) (output string, err error) {
-	m := getOptionsMap(options)
-	dir, err := getWorkingDir(m)
+func bash(script string, options []map[string]interface{}) (output string, err error) {
+	m, dir, capture, err := parseOptions(options)
 	if err != nil {
-		return
+		return "", err
 	}
 
 	if strings.Contains(script, "{{") {
@@ -120,21 +143,20 @@ func bash(captureOutput bool, script string, options []interface{}) (output stri
 	}
 
 	gcmd := &command{
-		executable:    "bash",
-		argv:          []string{"-c", script},
-		wd:            dir,
-		captureOutput: captureOutput,
-		commandstr:    script,
+		executable: "bash",
+		argv:       []string{"-c", script},
+		wd:         dir,
+		capture:    capture,
+		commandstr: script,
 	}
 
 	return gcmd.run()
 }
 
-func run(captureOutput bool, commandstr string, options []interface{}) (output string, err error) {
-	m := getOptionsMap(options)
-	dir, err := getWorkingDir(m)
+func run(commandstr string, options []map[string]interface{}) (output string, err error) {
+	m, dir, capture, err := parseOptions(options)
 	if err != nil {
-		return
+		return "", err
 	}
 
 	if strings.Contains(commandstr, "{{") {
@@ -144,33 +166,34 @@ func run(captureOutput bool, commandstr string, options []interface{}) (output s
 		}
 	}
 
-	executable, argv, env := splitCommand(commandstr)
-
-	cmd := &command{
-		executable:    executable,
-		wd:            dir,
-		env:           env,
-		argv:          argv,
-		captureOutput: captureOutput,
-		commandstr:    commandstr,
+	lines := strings.Split(commandstr, "\n")
+	if len(lines) == 0 {
+		return "", fmt.Errorf("Empty command string")
 	}
+	for i, cmdline := range lines {
+		cmdstr := strings.Trim(cmdline, " \t")
+		if cmdstr == "" {
+			continue
+		}
+		executable, argv, env := splitCommand(cmdstr)
 
-	s, err := cmd.run()
-	return s, err
-}
+		cmd := &command{
+			executable: executable,
+			wd:         dir,
+			env:        env,
+			argv:       argv,
+			capture:    capture,
+			commandstr: commandstr,
+		}
 
-func getOptionsMap(args []interface{}) map[string]interface{} {
-	if len(args) == 0 {
-		return nil
-	} else if m, ok := args[0].(map[string]interface{}); ok {
-		return m
-	} else if m, ok := args[0].(M); ok {
-		return m
-	} else if in, ok := args[0].(In); ok {
-		// legacy functions used to pass in In{}
-		return map[string]interface{}{"$in": in[0]}
+		s, err := cmd.run()
+		if err != nil {
+			err = fmt.Errorf(err.Error()+"\nline=%d", i)
+			return s, err
+		}
+		output += s
 	}
-	return nil
+	return output, nil
 }
 
 // func getWd(wd []In) (string, error) {
@@ -241,4 +264,34 @@ func Prompt(prompt string) string {
 func PromptPassword(prompt string) string {
 	fmt.Printf(prompt)
 	return string(gopass.GetPasswd())
+}
+
+// GoThrottle starts to run the given list of fns concurrently,
+// at most n fns at a time.
+func GoThrottle(throttle int, fns ...func() error) error {
+	var err error
+
+	// Create a new Throttler that will get 2 urls at a time
+	t := throttler.New(throttle, len(fns))
+	for _, fn := range fns {
+		// Launch a goroutine to fetch the URL.
+		go func(f func() error) {
+			err2 := f()
+			if err2 != nil {
+				err = err2
+			}
+
+			// Let Throttler know when the goroutine completes
+			// so it can dispatch another worker
+			t.Done(err)
+		}(fn)
+		// Pauses until a worker is available or all jobs have been completed
+		// Returning the total number of goroutines that have errored
+		// lets you choose to break out of the loop without starting any more
+		errorCount := t.Throttle()
+		if errorCount > 0 {
+			break
+		}
+	}
+	return err
 }

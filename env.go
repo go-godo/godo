@@ -68,6 +68,12 @@ func interpolateEnv(env []string, kv string) string {
 	return kv
 }
 
+// Getenv environment variable from a string array.
+func Getenv(key string) string {
+	envvars := parseStringEnv(Env)
+	return getEnv(envvars, key, true)
+}
+
 func getEnv(env []string, key string, checkParent bool) string {
 	for _, kv := range env {
 		pair := splitKV(kv)
@@ -154,4 +160,14 @@ func parseStringEnv(s string) []string {
 		env = append(env, kv)
 	}
 	return env
+}
+
+// parse environemnt variables from commandline
+func addToOSEnviron(argv []string) {
+	for _, arg := range argv {
+		equals := strings.IndexRune(arg, '=')
+		if equals > 0 {
+			os.Setenv(arg[0:equals], arg[equals+1:])
+		}
+	}
 }

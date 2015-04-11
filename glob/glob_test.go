@@ -1,4 +1,4 @@
-package godo
+package glob
 
 import (
 	//"log"
@@ -80,10 +80,13 @@ func TestMatching(t *testing.T) {
 }
 
 func TestGlob(t *testing.T) {
-	files, _, _ := Glob([]string{"./test/foo.txt"})
+	files, regexps, _ := Glob([]string{"./test/foo.txt"})
 	if len(files) != 1 {
 		t.Log("files", files)
 		t.Error("should return file with no patterns")
+	}
+	if len(files) != len(regexps) {
+		t.Error("Unequal amount of files and regexps")
 	}
 
 	files, _, _ = Glob([]string{"test/**/*.txt"})
@@ -104,7 +107,7 @@ func TestGlob(t *testing.T) {
 }
 
 func TestPatternRoot(t *testing.T) {
-	s := patternRoot("example/views/**/*.go.html")
+	s := PatternRoot("example/views/**/*.go.html")
 	if s != "example/views" {
 		t.Error("did not calculate root dir from pattern")
 	}

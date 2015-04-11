@@ -5,19 +5,26 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"strings"
+	"syscall"
 	"time"
 
+	// this MUST not reference any godo/v? directory
+
 	"github.com/mgutz/minimist"
-	"github.com/mgutz/str"
-	"gopkg.in/godo.v1"
-	"gopkg.in/godo.v1/util"
+	"gopkg.in/godo.v2"
+	"gopkg.in/godo.v2/util"
+	"gopkg.in/godo.v2/watcher"
 )
 
 var isWindows = runtime.GOOS == "windows"
+var isRebuild bool
+var isWatch bool
+var isVerbose bool
+var hasTasks bool
 
 func checkError(err error, format string, args ...interface{}) {
 	if err != nil {
@@ -39,40 +46,118 @@ func isPackageMain(data []byte) bool {
 }
 
 func main() {
-	// legacy version used tasks/
-	godoFiles := []string{"Gododir/Godofile.go", "tasks/Godofile.go"}
+	// v2 ONLY uses Gododir/main.go
+	godoFiles := []string{"Gododir/main.go", "Gododir/Godofile.go", "tasks/Godofile.go"}
 	src := ""
-	rel := ""
 	for _, filename := range godoFiles {
-		rel = filename
-		filename, err := filepath.Abs(filename)
-		if err != nil {
-			panic("Could not get absolute path " + filename)
+		src = util.FindUp(".", filename)
+		if src != "" {
+			break
 		}
-		if !util.FileExists(filename) {
-			continue
-		}
-		src = filename
-		break
 	}
 
 	if src == "" {
-		godo.Usage("")
 		fmt.Printf("\n\n%s not found\n", src)
 		os.Exit(1)
 	}
 
-	exe := buildMain(rel)
-	cmd := exe + " " + strings.Join(os.Args[1:], " ")
-	cmd = str.Clean(cmd)
-	// errors are displayed by tasks
+	wd, err := os.Getwd()
+	if err != nil {
+		util.Error("godo", "Could not get working directory: %s\n", err.Error())
+	}
 
-	godo.Run(cmd)
+	// parent of Gododir/main.go
+	absParentDir, err := filepath.Abs(filepath.Dir(filepath.Dir(src)))
+	if err != nil {
+		util.Error("godo", "Could not get absolute parent of %s: %s\n", src, err.Error())
+	}
+	if wd != absParentDir {
+		relDir, _ := filepath.Rel(wd, src)
+		os.Chdir(absParentDir)
+		util.Info("godo", "Using %s\n", relDir)
+	}
+
+	os.Setenv("GODOFILE", src)
+	argm := minimist.Parse()
+	isRebuild = argm.AsBool("rebuild")
+	isWatch = argm.AsBool("w", "watch")
+	isVerbose = argm.AsBool("v", "verbose")
+	hasTasks = len(argm.NonFlags()) > 0
+	run(src)
 }
 
-type godorc struct {
-	ModTime time.Time
-	Size    int64
+func run(godoFile string) {
+	if isWatch {
+		runAndWatch(godoFile)
+	} else {
+		cmd, _ := buildCommand(godoFile, false)
+		err := cmd.Run()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
+func buildCommand(godoFile string, forceBuild bool) (*exec.Cmd, string) {
+	exe := buildMain(godoFile, forceBuild)
+	cmd := exec.Command(exe, os.Args[1:]...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	return cmd, exe
+}
+
+func runAndWatch(godoFile string) {
+	done := make(chan bool, 1)
+	run := func(forceBuild bool) (*exec.Cmd, string) {
+		cmd, exe := buildCommand(godoFile, forceBuild)
+		cmd.Start()
+		go func() {
+			err := cmd.Wait()
+			done <- true
+			if err != nil {
+				if isVerbose {
+					util.Debug("godo", "godo process killed\n")
+				}
+			}
+		}()
+		return cmd, exe
+	}
+
+	bufferSize := 2048
+	watchr, err := watcher.NewWatcher(bufferSize)
+	if err != nil {
+		util.Panic("project", "%v\n", err)
+	}
+	godoDir := filepath.Dir(godoFile)
+	watchr.WatchRecursive(godoDir)
+	watchr.ErrorHandler = func(err error) {
+		util.Error("godo", "Watcher error %v\n", err)
+	}
+
+	cmd, exe := run(false)
+	// this function will block forever, Ctrl+C to quit app
+	// var lastHappenedTime int64
+	watchr.Start()
+	util.Info("godo", "watching %s ...\n", godoDir)
+
+	<-time.After(godo.GetWatchDelay() + (300 * time.Millisecond))
+
+	// forloop:
+	for {
+		select {
+		case event := <-watchr.Event:
+			if event.Path == exe {
+				continue
+			}
+			util.Debug("watchmain", "%+v\n", event)
+			syscall.Kill(cmd.Process.Pid, syscall.SIGQUIT)
+			cmd.Process.Kill()
+			<-done
+			cmd, _ = run(true)
+		}
+	}
+
 }
 
 func mustBeMain(src string) {
@@ -100,50 +185,37 @@ func mustBeMain(src string) {
 	}
 }
 
-func buildMain(src string) string {
+func buildMain(src string, forceBuild bool) string {
 	mustBeMain(src)
+	dir := filepath.Dir(src)
 
 	exeFile := "godobin-" + godo.Version
 	if isWindows {
 		exeFile += ".exe"
 	}
 
-	dir := filepath.Dir(src)
 	exe := filepath.Join(dir, exeFile)
-	reasonFormat := "Godofile changed. Rebuilding %s...\n"
 
-	argm := minimist.Parse()
-	rebuild := argm.ZeroBool("rebuild")
-	if rebuild {
-		os.Remove(exe)
+	build := false
+	reasonFormat := ""
+	if isRebuild || forceBuild {
+		build = true
+		reasonFormat = "Rebuilding %s...\n"
+	} else {
+		build = util.Outdated([]string{dir + "/**/*.go"}, []string{exe})
+		reasonFormat = "Godo tasks changed. Rebuilding %s...\n"
 	}
-
-	// see if last run exists .godoinfo
-	fiExe, err := os.Stat(exe)
-	build := os.IsNotExist(err)
-	if build {
-		reasonFormat = "Building %s...\n"
-	}
-
-	fiGodofile, err := os.Stat(src)
-	if os.IsNotExist(err) {
-		log.Fatalln(err)
-		os.Exit(1)
-	}
-	build = build || fiExe.ModTime().Before(fiGodofile.ModTime())
 
 	if build {
 		util.Debug("godo", reasonFormat, exe)
-
-		err := godo.Run("go build -a -o "+exeFile, godo.In{dir})
+		_, err := godo.Run("go build -a -o "+exeFile, godo.M{"$in": dir})
 		if err != nil {
-			panic(err)
+			panic(fmt.Sprintf("Error building %s: %s\n", src, err.Error()))
 		}
 	}
 
-	if rebuild {
-		util.Info("godo", "ok")
-		os.Exit(0)
+	if isRebuild {
+		util.Info("godo", "ok\n")
 	}
 
 	return exe

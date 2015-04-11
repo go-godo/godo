@@ -10,12 +10,6 @@ import (
 	"text/template"
 )
 
-// FileExists determines if path exists
-func FileExists(filename string) bool {
-	_, err := os.Stat(filename)
-	return !os.IsNotExist(err)
-}
-
 // PackageName determines the package name from sourceFile if it is within $GOPATH
 func PackageName(sourceFile string) (string, error) {
 	if filepath.Ext(sourceFile) != ".go" {

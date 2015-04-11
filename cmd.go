@@ -5,13 +5,23 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/mgutz/ansi"
-	"gopkg.in/godo.v1/util"
+	"gopkg.in/godo.v2/util"
 )
 
 // Proccesses are the processes spawned by Start()
 var Processes = make(map[string]*os.Process)
+
+const (
+	// CaptureStdout is a bitmask to capture STDOUT
+	CaptureStdout = 1
+	// CaptureStderr is a bitmask to capture STDERR
+	CaptureStderr = 2
+	// CaptureBoth captures STDOUT and STDERR
+	CaptureBoth = CaptureStdout + CaptureStderr
+)
 
 type command struct {
 	// original command string
@@ -24,10 +34,10 @@ type command struct {
 	env []string
 	// working directory
 	wd string
-	// whether to capture output
-	captureOutput bool
-	// the output recorder
-	recorder bytes.Buffer
+	// bitmask to capture output
+	capture int
+	// the output buf
+	buf bytes.Buffer
 }
 
 func (gcmd *command) toExecCmd() (cmd *exec.Cmd, err error) {
@@ -39,14 +49,15 @@ func (gcmd *command) toExecCmd() (cmd *exec.Cmd, err error) {
 	cmd.Env = effectiveEnv(gcmd.env)
 	cmd.Stdin = os.Stdin
 
-	if gcmd.captureOutput {
-		outWrapper := newFileWrapper(os.Stdout, &gcmd.recorder, "")
-		errWrapper := newFileWrapper(os.Stderr, &gcmd.recorder, ansi.ColorCode("red+b"))
-		cmd.Stdout = outWrapper
-		cmd.Stderr = errWrapper
+	if gcmd.capture&CaptureStderr > 0 {
+		cmd.Stderr = newFileWrapper(os.Stderr, &gcmd.buf, ansi.Red)
+	} else {
+		cmd.Stderr = os.Stderr
+	}
+	if gcmd.capture&CaptureStdout > 0 {
+		cmd.Stdout = newFileWrapper(os.Stdout, &gcmd.buf, "")
 	} else {
 		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
 	}
 
 	if verbose {
@@ -67,24 +78,24 @@ func (gcmd *command) run() (string, error) {
 	}
 
 	err = cmd.Run()
-	if gcmd.captureOutput {
-		return gcmd.recorder.String(), err
+	if gcmd.capture > 0 {
+		return gcmd.buf.String(), err
 	}
 	return "", err
 
 }
 
-func (gcmd *command) runAsync() (err error) {
+func (gcmd *command) runAsync() error {
 	cmd, err := gcmd.toExecCmd()
 	if err != nil {
-		return
+		return err
 	}
 
 	id := gcmd.commandstr
 
 	// kills previously spawned process (if exists)
 	killSpawned(id)
-	waitgroup.Add(1)
+	runnerWaitGroup.Add(1)
 	waitExit = true
 	go func() {
 		err = cmd.Start()
@@ -96,11 +107,8 @@ func (gcmd *command) runAsync() (err error) {
 		if verbose {
 			util.Debug("#", "Processes[%q] added\n", id)
 		}
-		c := make(chan error, 1)
-
-		c <- cmd.Wait()
-		_ = <-c
-		waitgroup.Done()
+		cmd.Wait()
+		runnerWaitGroup.Done()
 	}()
 	return nil
 }
@@ -113,7 +121,7 @@ func killSpawned(command string) {
 
 	err := process.Kill()
 	delete(Processes, command)
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "process already finished") {
 		util.Error("Start", "Could not kill existing process %+v\n%s\n", process, err.Error())
 		return
 	}

@@ -1,35 +1,37 @@
+**Documentation is WIP**
+
 # godo
 
-[godoc](https://godoc.org/gopkg.in/godo.v1)
+[godoc](https://godoc.org/github.com/mgutz/godo/v2)
 
 godo is a task runner and file watcher for golang in the spirit of
 rake, gulp.
 
 To install
 
-    go get -u gopkg.in/godo.v1/cmd/godo
+    go get -u github.com/mgutz/godo/v2/cmd/godo
 
 ## Godofile
 
-**godo** runs either `Gododir/Godofile.go` or `tasks/Godofile.go`.
+Godo runs `Gododir/main.go`.
 
-As an example, create a file **Gododir/Godofile.go** with this content
+As an example, create a file **Gododir/main.go** with this content
 
 ```go
 package main
 
 import (
 	"fmt"
-    . "gopkg.in/godo.v1"
+    . "github.com/mgutz/godo/v2"
 )
 
 func tasks(p *Project) {
     Env = `GOPATH=.vendor::$GOPATH`
 
-    p.Task("default", D{"hello", "build"})
+    p.Task("default", S{"hello", "build"}, nil)
 
-    p.Task("hello", func(c *Context) {
-        name := c.Args.ZeroString("name", "n")
+    p.Task("hello", nil, func(c *Context) {
+        name := c.Args.AsString("name", "n")
         if name == "" {
             Bash("echo Hello $USER!")
         } else {
@@ -37,26 +39,26 @@ func tasks(p *Project) {
         }
     })
 
-    p.Task("assets?", func() {
+    p.Task("assets?", nil,  func(*Context) {
         // The "?" tells Godo to run this task ONLY ONCE regardless of
         // how many tasks depend on it. In this case watchify watches
         // on its own.
 		Run("watchify public/js/index.js d -o dist/js/app.bundle.js")
-    }).Watch("public/**/*.{css,js,html}")
+    }).Src("public/**/*.{css,js,html}")
 
-    p.Task("build", D{"views", "assets"}, func() error {
-        return Run("GOOS=linux GOARCH=amd64 go build", In{"cmd/server"})
-    }).Watch("**/*.go")
+    p.Task("build", S{"views", "assets"}, func(c *Context) {
+        c.Run("GOOS=linux GOARCH=amd64 go build", In{"cmd/server"})
+    }).Src("**/*.go")
 
-    p.Task("server", D{"views", "assets"}, func() {
+    p.Task("server", S{"views", "assets"}, func(c *Context) {
         // rebuilds and restarts when a watched file changes
-        Start("main.go", M{"$in": "cmd/server"})
-    }).Watch("server/**/*.go", "cmd/server/*.{go,json}").
+        c.Start("main.go", M{"$in": "cmd/server"})
+    }).Src("server/**/*.go", "cmd/server/*.{go,json}").
        Debounce(3000)
 
-    p.Task("views", func() error {
-        return Run("razor templates")
-    }).Watch("templates/**/*.go.html")
+    p.Task("views", nil, func(c *Context) {
+        c.Run("razor templates")
+    }).Src("templates/**/*.go.html")
 }
 
 func main() {
@@ -83,32 +85,42 @@ Task names may add a "?" suffix to execute only once even when watching
 p.Task("assets?", func() {})
 ```
 
-Task options
+Task dependencies
 
-    D{} or Dependencies{} - dependent tasks which run before task
-    W{} or Watches{}      - array of glob file patterns to watch
+    S{} or Series{} - dependent tasks to run in series
+    P{} or Parallel{} - dependent tasks to run in parallel
 
-        /**/   - match zero or more directories
-        {a,b}  - match a or b, no spaces
-        *      - match any non-separator char
-        ?      - match a single non-separator char
-        **/    - match any directory, start of pattern only
-        /**    - match any in this directory, end of pattern only
-        !      - removes files from result set, start of pattern only
+    For example, S{"clean", P{"stylesheets", "templates"}, "build"}
 
-Task handlers
 
-    func()                  - Simple function handler, don't care about return
-    func() error            - Simple function handler
-    func(c *Context)        - Task with context, don't care about return
-    func(c *Context) error  - Task with context
+### Task Option Funcs
 
-Any error return in task or its dependencies stops the pipeline and
-`godo` exits with status code of 1, except in watch mode.
+*   Task#Src() - specify watch paths or the src files for Task#Dest()
 
-### Task Arguments
+        Glob patterns
 
-Task arguments follow POSIX style flag convention
+            /**/   - match zero or more directories
+            {a,b}  - match a or b, no spaces
+            *      - match any non-separator char
+            ?      - match a single non-separator char
+            **/    - match any directory, start of pattern only
+            /**    - match any in this directory, end of pattern only
+            !      - removes files from result set, start of pattern only
+
+*   Task#Dest(globs ...string) - If globs in Src are newer than Dest, then
+    the task is run
+
+*   Task#Desc(description string) - Set task's description in usage.
+
+*   Task#Debounce(duration time.Duration) - Disallow a task from running until duration
+    has elapsed.
+
+*   Task#Deps(names ...interface{}) - Can be `{S, Series, P, Parallel, string}`
+
+
+### Task CLI Arguments
+
+Task CLI arguments follow POSIX style flag convention
 (unlike go's built-in flag package). Any command line arguments
 succeeding `--` are passed to each task. Note, arguments before `--`
 are reserved for `godo`.
@@ -116,12 +128,12 @@ are reserved for `godo`.
 As an example,
 
 ```go
-p.Task("hello", func(c *Context) {
+p.Task("hello", nil, func(c *Context) {
     // "(none)" is the default value
     msg := c.Args.MayString("(none)", "message", "msg", "m")
     var name string
-    if len(c.Args.Leftover() == 1) {
-        name = c.Args.Leftover()[0]
+    if len(c.Args.NonFlags() == 1) {
+        name = c.Args.NonFlags()[0]
     }
     fmt.Println(msg, name)
 })
@@ -150,16 +162,50 @@ c.Args.MustInt("number", "n")
 *  `May*` - If argument is not set, default to first value.
 
     ```go
-    // defaults to 100
-    c.Args.MayInt(100, "number", "n")
+// defaults to 100
+c.Args.MayInt(100, "number", "n")
 ```
 
-*  `Zero*` - If argument is not set, default to zero value.
+*  `As*` - If argument is not set, default to zero value.
 
     ```go
 // defaults to 0
-c.Args.ZeroInt("number", "n")
+c.Args.AsInt("number", "n")
 ```
+
+
+## Namespaces
+
+Tasks may be put in a namespace. This is helpful for organizing tasks or
+importing tasks created by other users
+
+```go
+func buildTasks(p *Project) {
+    p.Task("default", S{"clean"}, nil)
+
+    p.Task("clean", func() {
+        fmt.Println("build clean")
+    })
+}
+
+func tasks(p *Project) {
+    p.use("build", otherTasks)
+
+    p.Task("clean", nil, func(*Context) {
+        fmt.Println("root clean")
+    })
+
+    p.Task("build", S{"build:default"}, func(*Context) {
+        fmt.Println("root clean")
+    })
+}
+```
+
+Running `godo build:.` or `godo build` results in output of `build clean`. Note that
+it uses the `clean` task in its namespace not the `clean` in the parent project.
+
+The special name `build:.` is alias for `build:default`.
+
 
 ## godobin
 
@@ -228,12 +274,7 @@ Use this for watching a server task.
 Start("main.go", M{"$in": "cmd/app"})
 ```
 
-Godo tracks the process ID of started processes in the map `Processes` to restart the app gracefully.
-
-If `Start` is not working as expected with go files, verify `go install -a main.go` works in the 
-directory of the file, replacing "main.go" with your file. Most issues around (re)starts are 
-due to being outside of `GOPATH` or multiple packages in a directory. Set `Env` if `GOPATH`
-needs to be adjusted.
+Godo tracks the process ID of started processes to restart the app gracefully.
 
 ### Inside
 
@@ -262,6 +303,17 @@ password := PromptPassword("password: ")
 ```
 
 ## Godofile Run-Time Environment
+
+### From command-line
+
+Environment variables may be set via key-value pairs as arguments to
+godo. This feature was added to facilitate users on Windows.
+
+```sh
+godo NAME=mario GOPATH=./vendor hello
+```
+
+### From source code
 
 To specify whether to inherit from parent's process environment,
 set `InheritParentEnv`. This setting defaults to true
@@ -292,8 +344,8 @@ Note that environment variables are set before the executable similar to a shell
 however, the `Run` and `Start` functions do not use a shell.
 
 ```go
-p.Task("build", func() {
-    Run("GOOS=linux GOARCH=amd64 go build" )
+p.Task("build", nil, func(c *Context) {
+    c.Run("GOOS=linux GOARCH=amd64 go build" )
 })
 ```
 

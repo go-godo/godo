@@ -3,11 +3,23 @@ package godo
 import (
 	"fmt"
 	"os"
-	"sync"
+	"os/signal"
+	"strings"
+	"syscall"
+	"time"
 
+	"gopkg.in/godo.v2/util"
+	"gopkg.in/godo.v2/watcher"
 	"github.com/mgutz/minimist"
-	"gopkg.in/godo.v1/util"
 )
+
+// Message are sent on the Events channel
+type Message struct {
+	Event string
+	Data  string
+}
+
+const defaultWatchDelay = 1200 * time.Millisecond
 
 var watching bool
 var help bool
@@ -16,14 +28,36 @@ var version bool
 var deprecatedWarnings bool
 
 // DebounceMs is the default time (1500 ms) to debounce task events in watch mode.
-var DebounceMs int64
-var waitgroup sync.WaitGroup
+var Debounce time.Duration
+var runnerWaitGroup = &WaitGroupN{}
 var waitExit bool
 var argm minimist.ArgMap
-var contextArgm minimist.ArgMap
+var wd string
+var watchDelay = defaultWatchDelay
+
+// SetWatchDelay sets the time duration between watches.
+func SetWatchDelay(delay time.Duration) {
+	if delay == 0 {
+		delay = defaultWatchDelay
+	}
+	watchDelay = delay
+	watcher.SetWatchDelay(watchDelay)
+}
+
+// GetWatchDelay gets the watch delay
+func GetWatchDelay() time.Duration {
+	return watchDelay
+}
 
 func init() {
-	DebounceMs = 2000
+	// WatchDelay is the time to poll the file system
+	SetWatchDelay(watchDelay)
+	Debounce = 2000 * time.Millisecond
+	var err error
+	wd, err = os.Getwd()
+	if err != nil {
+		panic(err)
+	}
 
 }
 
@@ -34,7 +68,9 @@ func Usage(tasks string) {
 
 Usage: godo [flags] [task...]
   -D             Print deprecated warnings
+      --dump     Dump debug info about the project
   -h, --help     This screen
+  -i, --install  Install Godofile dependencies
       --rebuild  Rebuild Godofile
   -v  --verbose  Log verbosely
   -V, --version  Print version
@@ -53,36 +89,53 @@ func Godo(tasksFunc func(*Project)) {
 	godo(tasksFunc, nil)
 }
 
-func godo(tasksFunc func(*Project), argv []string) {
+func godo(tasksFn func(*Project), argv []string) {
+	godoExit(tasksFn, argv, os.Exit)
+}
+
+// used for testing to switch out exitFn
+func godoExit(tasksFunc func(*Project), argv []string, exitFn func(int)) {
 	if argv == nil {
 		argm = minimist.Parse()
 	} else {
 		argm = minimist.ParseArgv(argv)
 	}
 
-	help = argm.ZeroBool("help", "h", "?")
-	verbose = argm.ZeroBool("verbose", "v")
-	version = argm.ZeroBool("version", "V")
-	watching = argm.ZeroBool("watch", "w")
-	deprecatedWarnings = argm.ZeroBool("D")
-	contextArgm = minimist.ParseArgv(argm.Unparsed())
+	dump := argm.AsBool("dump")
+	help = argm.AsBool("help", "h", "?")
+	verbose = argm.AsBool("verbose", "v")
+	version = argm.AsBool("version", "V")
+	watching = argm.AsBool("watch", "w")
+	deprecatedWarnings = argm.AsBool("D")
+	contextArgm := minimist.ParseArgv(argm.Unparsed())
 
-	project := NewProject(tasksFunc)
+	project := NewProject(tasksFunc, exitFn, contextArgm)
 
 	if help {
 		Usage(project.usage())
-		os.Exit(0)
+		exitFn(0)
 	}
 
 	if version {
 		fmt.Printf("godo %s\n", Version)
-		os.Exit(0)
+		exitFn(0)
 	}
+
+	if dump {
+		project.dump(os.Stdout, "", "  ")
+		exitFn(0)
+	}
+
+	// env vars are any nonflag key=value pair
+	addToOSEnviron(argm.NonFlags())
 
 	// Run each task including their dependencies.
 	args := []string{}
-	for _, v := range argm.Leftover() {
-		args = append(args, fmt.Sprintf("%v", v))
+	for _, s := range argm.NonFlags() {
+		// skip env vars
+		if !strings.Contains(s, "=") {
+			args = append(args, s)
+		}
 	}
 
 	if len(args) == 0 {
@@ -90,36 +143,46 @@ func godo(tasksFunc func(*Project), argv []string) {
 			args = append(args, "default")
 		} else {
 			Usage(project.usage())
-			os.Exit(0)
+			exitFn(0)
 		}
-	}
-
-	// quick fix to make cascading watch work on default task
-	if len(args) == 1 && args[0] == "default" {
-		args = project.Tasks["default"].Dependencies
 	}
 
 	for _, name := range args {
 		err := project.Run(name)
 		if err != nil {
 			util.Error("ERR", "%s\n", err.Error())
-			os.Exit(1)
+			exitFn(1)
 		}
 	}
 
 	if watching {
 		if project.Watch(args, true) {
-			waitgroup.Add(1)
+			runnerWaitGroup.Add(1)
 			waitExit = true
 		} else {
-			fmt.Println("Nothing to watch. Use W{} or Watch{} to specify glob patterns")
-			os.Exit(0)
+			fmt.Println("Nothing to watch. Use Task#Src() to specify watch patterns")
+			exitFn(0)
 		}
 	}
 
 	if waitExit {
-		waitgroup.Wait()
+		// Ctrl+C handler
+		csig := make(chan os.Signal, 1)
+		signal.Notify(csig, syscall.SIGQUIT)
+		go func() {
+			for sig := range csig {
+				fmt.Println("SIG caught")
+				if sig == syscall.SIGQUIT {
+					fmt.Println("SIG caught B")
+					project.Exit(0)
+					break
+				}
+			}
+		}()
+
+		runnerWaitGroup.Wait()
 	}
+	exitFn(0)
 }
 
 // MustNotError checks if error is not nil. If it is not nil it will panic.

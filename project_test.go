@@ -1,11 +1,9 @@
 package godo
 
 import (
-	"fmt"
-	"io/ioutil"
 	"sort"
-	"strings"
 	"testing"
+	"time"
 
 	"github.com/mgutz/str"
 	"github.com/stretchr/testify/assert"
@@ -14,13 +12,12 @@ import (
 func TestSimpleTask(t *testing.T) {
 	result := ""
 	tasks := func(p *Project) {
-		p.Task("foo", func(c *Context) {
+		p.Task1("foo", func(c *Context) {
 			result = "A"
 		})
 	}
 
-	project := NewProject(tasks)
-	project.Run("foo")
+	runTask(tasks, "foo")
 	if result != "A" {
 		t.Error("should have run simple task")
 	}
@@ -29,17 +26,18 @@ func TestSimpleTask(t *testing.T) {
 func TestErrorReturn(t *testing.T) {
 	result := ""
 	tasks := func(p *Project) {
-		p.Task("err", func() error {
-			return fmt.Errorf("error caught")
+		p.Task1("err", func(*Context) {
+			Halt("error caught")
+			// should not get here
+			result += "ERR"
 		})
 
-		p.Task("foo", D{"err"}, func() {
+		p.Task("foo", S{"err"}, func(*Context) {
 			result = "A"
 		})
 	}
 
-	project := NewProject(tasks)
-	err := project.Run("foo")
+	_, err := runTask(tasks, "foo")
 	if result == "A" {
 		t.Error("parent task should not run on error")
 	}
@@ -47,8 +45,7 @@ func TestErrorReturn(t *testing.T) {
 		t.Error("dependency errors should stop parent")
 	}
 
-	project.reset()
-	err = project.Run("err")
+	_, err = runTask(tasks, "err")
 	if err.Error() != `"err": error caught` {
 		t.Error("error was not handle properly")
 	}
@@ -58,81 +55,51 @@ func TestTaskArgs(t *testing.T) {
 	assert := assert.New(t)
 	result := ""
 	tasks := func(p *Project) {
-		p.Task("foo", func(c *Context) {
+		p.Task1("foo", func(c *Context) {
 			name := c.Args.MustString("name")
 			result = name
 		})
 	}
 
-	godo(tasks, []string{"foo", "--", "--name=gopher"})
+	execCLI(tasks, []string{"foo", "--", "--name=gopher"}, nil)
 	assert.Equal("gopher", result)
-
 	assert.Panics(func() {
-		godo(tasks, []string{"foo"})
+		runTask(tasks, "foo")
 	})
 }
 
 func TestDependency(t *testing.T) {
 	result := ""
 	tasks := func(p *Project) {
-		p.Task("foo", func(c *Context) {
+		p.Task1("foo", func(c *Context) {
 			result = "A"
 		})
 
-		p.Task("bar", D{"foo"})
+		p.Task("bar", S{"foo"}, nil)
 	}
-	project := NewProject(tasks)
-	project.Run("bar")
+	runTask(tasks, "bar")
 	if result != "A" {
 		t.Error("should have run task's dependency")
-	}
-}
-
-func TestMultiProject(t *testing.T) {
-	result := ""
-
-	otherTasks := func(p *Project) {
-		p.Task("foo", D{"bar"}, func(c *Context) {
-			result += "B"
-		})
-
-		p.Task("bar", func(c *Context) {
-			result += "C"
-		})
-	}
-
-	tasks := func(p *Project) {
-		p.Use("other", otherTasks)
-
-		p.Task("foo", func(c *Context) {
-			result += "A"
-		})
-
-		p.Task("bar", D{"foo", "other:foo"})
-	}
-	project := NewProject(tasks)
-	project.Run("bar")
-	if result != "ACB" {
-		t.Error("should have run dependent project")
 	}
 }
 
 func TestShouldExpandGlobs(t *testing.T) {
 	result := ""
 	tasks := func(p *Project) {
-		p.Task("foo", Watch{"test/**/*.txt"}, func(c *Context) {
+		p.Task("foo", nil, func(c *Context) {
 			result = "A"
-		})
+		}).Src("test/**/*.txt")
 
-		p.Task("bar", Watch{"test/**/*.html"}, D{"foo"})
+		p.Task("bar", S{"foo"}, nil).Src("test/**/*.html")
 	}
-	project := NewProject(tasks)
-	project.Run("bar")
-	if len(project.Tasks["bar"].WatchFiles) != 1 {
-		t.Error("bar should have 1 HTML file")
+	proj, err := runTask(tasks, "bar")
+	assert.NoError(t, err)
+	if len(proj.Tasks["bar"].SrcFiles) != 2 {
+		t.Error("bar should have 2 HTML file")
 	}
-	if len(project.Tasks["foo"].WatchFiles) != 5 {
-		t.Error("foo should have 5 txt files, one is hidden")
+	if len(proj.Tasks["foo"].SrcFiles) != 7 {
+		t.Error("foo should have 7 txt files, one is hidden, got",
+			len(proj.Tasks["foo"].SrcFiles))
 	}
 }
 
@@ -147,11 +114,11 @@ func TestCalculateWatchPaths(t *testing.T) {
 		t.Error("Expected exact elements")
 	}
 	sort.Strings(paths)
-	if paths[0] != "example.html" {
+	if paths[0] != "." {
 		t.Error("Expected exact file paths got", paths[0])
 	}
-	if paths[1] != "example/views/" {
-		t.Error("Expected example/views/ got", paths[1])
+	if paths[1] != "example/views" {
+		t.Error("Expected example/views got", paths[1])
 	}
 
 	// should only watch current directory
@@ -160,73 +127,13 @@ func TestCalculateWatchPaths(t *testing.T) {
 		"example.html",
 	}
 	paths = calculateWatchPaths(paths)
+
 	if len(paths) != 1 {
 		t.Error("Expected exact elements")
 	}
 	if paths[0] != "." {
 		t.Error("Expected . got", paths[0])
 	}
-}
-
-func TestInside(t *testing.T) {
-	Inside("test", func() {
-		var out string
-		if isWindows {
-			out, _ = RunOutput("foo.cmd")
-		} else {
-			out, _ = RunOutput("bash foo.sh")
-		}
-
-		if str.Clean(out) != "FOOBAR" {
-			t.Error("Inside failed. Got", fmt.Sprintf("%q", out))
-		}
-	})
-
-	version, _ := ioutil.ReadFile("./VERSION.go")
-	if !strings.Contains(string(version), "var Version") {
-		t.Error("Inside failed to reset work directory")
-	}
-}
-
-func TestBash(t *testing.T) {
-	if isWindows {
-		return
-	}
-	out, _ := BashOutput(`echo -n foobar`)
-	if out != "foobar" {
-		t.Error("Simple bash failed. Got", out)
-	}
-
-	out, _ = BashOutput(`
-		echo -n foobar
-		echo -n bahbaz
-	`)
-	if out != "foobarbahbaz" {
-		t.Error("Multiline bash failed. Got", out)
-	}
-
-	out, _ = BashOutput(`
-		echo -n \
-		foobar
-	`)
-	if out != "foobar" {
-		t.Error("Bash line continuation failed. Got", out)
-	}
-
-	out, _ = BashOutput(`
-		echo -n "foobar"
-	`)
-	if out != "foobar" {
-		t.Error("Bash quotes failed. Got", out)
-	}
-
-	out, _ = BashOutput(`
-		echo -n "fo\"obar"
-	`)
-	if out != "fo\"obar" {
-		t.Error("Bash quoted string failed. Got", out)
-	}
-
 }
 
 func TestLegacyIn(t *testing.T) {
@@ -241,12 +148,7 @@ func TestLegacyIn(t *testing.T) {
 
 	out, err := RunOutput(cat+" foo.txt", M{"$in": "test"})
 	assert.NoError(t, err)
-	assert.Equal(t, "asdf", str.Clean(out))
-
-	// need to support V1 though
-	out, err = RunOutput(cat+" foo.txt", In{"test"})
-	assert.NoError(t, err)
-	assert.Equal(t, "asdf", str.Clean(out))
+	assert.Equal(t, "foo", str.Clean(out))
 
 	if isWindows {
 		return
@@ -257,40 +159,59 @@ func TestLegacyIn(t *testing.T) {
 	// in V2 BashOutput accepts an options map
 	out, err = BashOutput("cat foo.txt", M{"$in": "test"})
 	assert.NoError(t, err)
-	assert.Equal(t, "asdf", str.Clean(out))
-
-	// need to support V1 though
-	out, err = BashOutput("cat foo.txt", In{"test"})
-	assert.NoError(t, err)
-	assert.Equal(t, "asdf", str.Clean(out))
+	assert.Equal(t, "foo", str.Clean(out))
 }
 
-func TestTemplatedCommands(t *testing.T) {
-	echo := "echo"
-	if isWindows {
-		echo = "cmd /c echo"
-
-	}
-	// in V2 BashOutput accepts an options map
-	out, err := RunOutput(echo+" {{.name}}", M{"name": "oy"})
-	assert.NoError(t, err)
-	assert.Equal(t, "oy", str.Clean(out))
-
-	if isWindows {
-		return
+func TestInvalidTask(t *testing.T) {
+	tasks := func(p *Project) {
 	}
 
-	// in V2 BashOutput accepts an options map
-	out, err = BashOutput("echo {{.name}}", M{"name": "oy"})
-	assert.NoError(t, err)
-	assert.Equal(t, "oy", str.Clean(out))
+	assert.Panics(t, func() {
+		runTask(tasks, "dummy")
+	})
 }
 
-func sliceContains(slice []string, val string) bool {
-	for _, it := range slice {
-		if it == val {
-			return true
-		}
+func TestParallel(t *testing.T) {
+	var result string
+	tasks := func(p *Project) {
+		p.Task1("A", func(*Context) {
+			result += "A"
+		})
+		p.Task1("B", func(*Context) {
+			time.Sleep(10 * time.Millisecond)
+			result += "B"
+		})
+		p.Task("C", nil, func(*Context) {
+			result += "C"
+		})
+		p.Task("D", nil, func(*Context) {
+			result += "D"
+		})
+		p.Task("default", P{"A", "B", "C", "D"}, nil)
 	}
-	return false
+
+	argv := []string{}
+	ch := make(chan int)
+	go func() {
+		execCLI(tasks, argv, func(code int) {
+			assert.Equal(t, code, 0)
+			assert.True(t, len(result) == 4)
+			ch <- code
+			close(ch)
+		})
+	}()
+	<-ch
+}
+
+func TestTaskD(t *testing.T) {
+	trace := ""
+	tasks := func(p *Project) {
+		p.Task1("A", func(*Context) {
+			trace += "A"
+		})
+
+		p.TaskD("default", S{"A"})
+	}
+	runTask(tasks, "default")
+	assert.Equal(t, "A", trace)
 }

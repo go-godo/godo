@@ -1,7 +1,8 @@
-package godo
+package glob
 
 import (
 	"bytes"
+	"fmt"
 	//"log"
 	"os"
 	gpath "path"
@@ -12,7 +13,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/MichaelTJones/walk"
-	"gopkg.in/godo.v1/util"
 )
 
 const (
@@ -30,12 +30,24 @@ const (
 
 // RegexpInfo contains additional info about the Regexp created by a glob pattern.
 type RegexpInfo struct {
-	*regexp.Regexp
+	Regexp *regexp.Regexp
 	Negate bool
+	Path   string
+	Glob   string
+}
+
+// MatchString matches a string with either a regexp or direct string match
+func (ri *RegexpInfo) MatchString(s string) bool {
+	if ri.Regexp != nil {
+		return ri.Regexp.MatchString(s)
+	} else if ri.Path != "" {
+		return strings.HasSuffix(s, ri.Path)
+	}
+	return false
 }
 
 // Globexp builds a regular express from from extended glob pattern and then
-// returns a Regexp object from the pattern.
+// returns a Regexp object.
 func Globexp(glob string) *regexp.Regexp {
 	var re bytes.Buffer
 
@@ -142,7 +154,7 @@ func Glob(patterns []string) ([]*FileAsset, []*RegexpInfo, error) {
 			pattern = pattern[1:]
 			if hasMeta(pattern) {
 				re := Globexp(pattern)
-				regexps = append(regexps, &RegexpInfo{Regexp: re, Negate: true})
+				regexps = append(regexps, &RegexpInfo{Regexp: re, Glob: pattern, Negate: true})
 				for path := range m {
 					if re.MatchString(path) {
 						m[path] = nil
@@ -151,14 +163,15 @@ func Glob(patterns []string) ([]*FileAsset, []*RegexpInfo, error) {
 			} else {
 				path := gpath.Clean(pattern)
 				m[path] = nil
+				regexps = append(regexps, &RegexpInfo{Path: path, Glob: pattern, Negate: true})
 			}
 		} else {
 			if hasMeta(pattern) {
 				re := Globexp(pattern)
-				regexps = append(regexps, &RegexpInfo{Regexp: re})
-				root := patternRoot(pattern)
+				regexps = append(regexps, &RegexpInfo{Regexp: re, Glob: pattern})
+				root := PatternRoot(pattern)
 				if root == "" {
-					util.Panic("glob", "Cannot get root from pattern: %s", pattern)
+					return nil, nil, fmt.Errorf("Cannot get root from pattern: %s", pattern)
 				}
 				fileAssets, err := walkFiles(root)
 				if err != nil {
@@ -178,6 +191,7 @@ func Glob(patterns []string) ([]*FileAsset, []*RegexpInfo, error) {
 				if err != nil {
 					return nil, nil, err
 				}
+				regexps = append(regexps, &RegexpInfo{Path: path, Glob: pattern, Negate: false})
 				fa := &FileAsset{Path: path, FileInfo: info}
 				m[path] = fa
 			}
@@ -191,15 +205,7 @@ func Glob(patterns []string) ([]*FileAsset, []*RegexpInfo, error) {
 			keys = append(keys, it)
 		}
 	}
-
 	return keys, regexps, nil
-}
-
-// FileAsset contains file information and path from globbing.
-type FileAsset struct {
-	os.FileInfo
-	// Path to asset
-	Path string
 }
 
 // hasMeta determines if a path has special chars used to build a Regexp.
@@ -207,31 +213,38 @@ func hasMeta(path string) bool {
 	return strings.IndexAny(path, "*?[{") >= 0
 }
 
-// patternRoot gets a real directory root from a pattern. The directory
-// returned is used as the start location for globbing.
-func patternRoot(s string) string {
-	// A negation does not walk the file system
-	if strings.HasPrefix(s, "!") {
-		return ""
+func isDir(path string) bool {
+	st, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false
 	}
+	return st.IsDir()
+}
+
+// PatternRoot gets a real directory root from a pattern. The directory
+// returned is used as the start location for globbing.
+func PatternRoot(s string) string {
+	if isDir(s) {
+		return s
+	}
+
 	// No directory in pattern
 	parts := strings.Split(s, "/")
 	if len(parts) == 1 {
-		return "./"
+		return "."
 	}
+	// parts returns an empty string at positio 0 if the s starts with "/"
+	root := ""
+
 	// Build path until a dirname has a char used to build regex
-	root, i, l := "", 0, len(parts)
-	for i < l-1 {
-		part := parts[i]
+	for i, part := range parts {
 		if hasMeta(part) {
 			break
 		}
-		if root == "" {
-			root = part
-		} else {
-			root += "/" + part
+		if i > 0 {
+			root += "/"
 		}
-		i++
+		root += part
 	}
 	// Default to cwd
 	if root == "" {
@@ -246,6 +259,9 @@ func walkFiles(root string) ([]*FileAsset, error) {
 	fileAssets := []*FileAsset{}
 	var lock sync.Mutex
 	visitor := func(path string, info os.FileInfo, err error) error {
+		// if err != nil {
+		// 	fmt.Println("visitor err", err.Error(), "root", root)
+		// }
 		if err == nil {
 			lock.Lock()
 			fileAssets = append(fileAssets, &FileAsset{FileInfo: info, Path: filepath.ToSlash(path)})

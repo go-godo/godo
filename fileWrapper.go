@@ -17,15 +17,13 @@ type fileWrapper struct {
 
 	// Adds color to stdout & stderr if terminal supports it
 	colorStart string
-	colorReset string
 }
 
 func newFileWrapper(file *os.File, recorder *bytes.Buffer, color string) *fileWrapper {
 	streamer := &fileWrapper{
 		file:       file,
-		buf:        bytes.NewBuffer([]byte("")),
+		buf:        bytes.NewBufferString(""),
 		recorder:   recorder,
-		colorReset: ansi.ColorCode("reset"),
 		colorStart: color,
 	}
 
@@ -58,9 +56,12 @@ func (l *fileWrapper) Close() error {
 func (l *fileWrapper) out(str string) (err error) {
 
 	if l.colorStart != "" {
-		str = l.colorStart + str + l.colorReset
+		fmt.Fprint(l.file, l.colorStart)
+		fmt.Fprint(l.file, str)
+		fmt.Fprint(l.file, ansi.Reset)
+	} else {
+		fmt.Fprint(l.file, str)
 	}
 
-	fmt.Fprint(l.file, str)
 	return nil
 }
