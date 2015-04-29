@@ -67,7 +67,10 @@ func main() {
 	cmd = str.Clean(cmd)
 	// errors are displayed by tasks
 
-	godo.Run(cmd)
+	err := godo.Run(cmd)
+	if err != nil {
+		os.Exit(1)
+	}
 }
 
 type godorc struct {
