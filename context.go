@@ -1,9 +1,9 @@
 package godo
 
 import (
+	"github.com/mgutz/minimist"
 	"gopkg.in/godo.v2/util"
 	"gopkg.in/godo.v2/watcher"
-	"github.com/mgutz/minimist"
 )
 
 func logVerbose(msg string, format string, args ...interface{}) {
@@ -70,6 +70,36 @@ func (context *Context) Start(cmd string, options ...map[string]interface{}) {
 	if err != nil {
 		context.Error = err
 	}
+}
+
+// BashOutput executes a bash script and returns the output
+func (context *Context) BashOutput(script string, options ...map[string]interface{}) string {
+	if len(options) == 0 {
+		options = append(options, M{"$out": CaptureBoth})
+	} else {
+		options[0]["$out"] = CaptureBoth
+	}
+	s, err := Bash(script, options...)
+	if err != nil {
+		context.Error = err
+		return ""
+	}
+	return s
+}
+
+// RunOutput runs a command and returns output.
+func (context *Context) RunOutput(commandstr string, options ...map[string]interface{}) string {
+	if len(options) == 0 {
+		options = append(options, M{"$out": CaptureBoth})
+	} else {
+		options[0]["$out"] = CaptureBoth
+	}
+	s, err := Run(commandstr, options...)
+	if err != nil {
+		context.Error = err
+		return ""
+	}
+	return s
 }
 
 // Check halts the task if err is not nil.

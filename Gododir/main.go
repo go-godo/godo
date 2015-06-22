@@ -6,27 +6,27 @@ import (
 	// "github.com/mgutz/goa"
 	// f "github.com/mgutz/goa/filter"
 
-	. "gopkg.in/godo.v2"
+	do "gopkg.in/godo.v2"
 )
 
-func tasks(p *Project) {
-	p.Task("test", nil, func(*Context) {
-		Run("go test")
-	})
-
-	p.Task("test", S{"build"}, func(c *Context) {
+func tasks(p *do.Project) {
+	p.Task("test", nil, func(c *do.Context) {
 		c.Run("go test")
 	})
 
-	p.Task("dist", S{"test", "lint"}, nil)
+	p.Task("test", do.S{"build"}, func(c *do.Context) {
+		c.Run("go test")
+	})
 
-	p.Task("install", nil, func(c *Context) {
+	p.Task("dist", do.S{"test", "lint"}, nil)
+
+	p.Task("install", nil, func(c *do.Context) {
 		c.Run("go get github.com/golang/lint/golint")
 		// Run("go get github.com/mgutz/goa")
 		c.Run("go get github.com/robertkrimen/godocdown/godocdown")
 	})
 
-	p.Task("lint", nil, func(c *Context) {
+	p.Task("lint", nil, func(c *do.Context) {
 		c.Run("golint .")
 		c.Run("gofmt -w -s .")
 		c.Run("go vet .")
@@ -42,11 +42,11 @@ func tasks(p *Project) {
 	// 	)
 	// })
 
-	p.Task("build", nil, func(c *Context) {
-		c.Run("go install", M{"$in": "cmd/godo"})
+	p.Task("build", nil, func(c *do.Context) {
+		c.Run("go install", do.M{"$in": "cmd/godo"})
 	})
 
-	p.Task("interactive", nil, func(c *Context) {
+	p.Task("interactive", nil, func(c *do.Context) {
 		c.Bash(`
 			echo name?
 			read name
@@ -54,43 +54,42 @@ func tasks(p *Project) {
 		`)
 	})
 
-	p.Task("whoami", nil, func(c *Context) {
-		Run("whoami")
+	p.Task("whoami", nil, func(c *do.Context) {
+		c.Run("whoami")
 	})
 
 	pass := 0
-	p.Task("err2", nil, func(*Context) {
+	p.Task("err2", nil, func(*do.Context) {
 		if pass == 2 {
-			Halt("oh oh")
+			do.Halt("oh oh")
 		}
 	})
 
-	p.Task("err", S{"err2"}, func(*Context) {
+	p.Task("err", do.S{"err2"}, func(*do.Context) {
 		pass++
 		if pass == 1 {
 			return
 		}
-		Halt("foo err")
+		do.Halt("foo err")
 	}).Src("test/*.txt")
 
-	p.Task("hello", nil, func(c *Context) {
-		name := c.Args.MayString("default value", "name", "n")
+	p.Task("hello", nil, func(c *do.Context) {
+		name := c.Args.AsString("default value", "name", "n")
 		fmt.Println("Hello", name)
 	}).Src("*.hello").Debounce(3000)
 
-	p.Task("server", nil, func(*Context) {
-		Start("main.go", M{"$in": "cmd/example"})
+	p.Task("server", nil, func(c *do.Context) {
+		c.Start("main.go", do.M{"$in": "cmd/example"})
 	}).Src("cmd/example/**/*.go")
 
-	p.Task("change-package", nil, func(*Context) {
+	p.Task("change-package", nil, func(c *do.Context) {
 		// works on mac
-		Run(`find . -name "*.go" -print | xargs sed -i "" 's|gopkg.in/godo.v1|gopkg.in/godo.v2|g'`)
+		c.Run(`find . -name "*.go" -print | xargs sed -i "" 's|gopkg.in/godo.v1|gopkg.in/godo.v2|g'`)
 		// maybe linux?
 		//Run(`find . -name "*.go" -print | xargs sed -i 's|gopkg.in/godo.v1|gopkg.in/godo.v2|g'`)
 	})
-
 }
 
 func main() {
-	Godo(tasks)
+	do.Godo(tasks)
 }

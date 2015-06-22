@@ -48,8 +48,9 @@ type Project struct {
 	exitFn      func(code int)
 	ns          string
 	contextArgm minimist.ArgMap
-
 	cwatchTasks map[chan bool]bool
+
+	parent *Project
 }
 
 // NewProject creates am empty project ready for tasks.
@@ -79,6 +80,21 @@ func (project *Project) mustTask(name string) (*Project, *Task, string) {
 	}
 
 	proj := project
+
+	// use root
+	if strings.HasPrefix(name, "/") {
+		name = name[1:]
+		for true {
+			if proj.parent != nil {
+				proj = proj.parent
+			} else {
+				break
+			}
+		}
+	} else {
+		proj = project
+	}
+
 	taskName := "default"
 	parts := strings.Split(name, ":")
 
@@ -296,6 +312,7 @@ func (project *Project) Use(namespace string, tasksFunc func(*Project)) {
 	proj := NewProject(tasksFunc, project.exitFn, project.contextArgm)
 	proj.ns = project.ns + ":" + namespace
 	project.Namespace[namespace] = proj
+	proj.parent = project
 }
 
 // Task adds a task to the project with dependencies and handler.

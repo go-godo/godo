@@ -176,8 +176,7 @@ c.Args.AsInt("number", "n")
 
 ## Namespaces
 
-Tasks may be put in a namespace. This is helpful for organizing tasks or
-importing tasks created by other users
+A project may be assigned to a namespace.
 
 ```go
 func buildTasks(p *Project) {
@@ -189,7 +188,7 @@ func buildTasks(p *Project) {
 }
 
 func tasks(p *Project) {
-    p.use("build", otherTasks)
+    p.Use("build", otherTasks)
 
     p.Task("clean", nil, func(*Context) {
         fmt.Println("root clean")
@@ -206,6 +205,8 @@ it uses the `clean` task in its namespace not the `clean` in the parent project.
 
 The special name `build:.` is alias for `build:default`.
 
+Task dependencies that start with `"/"` are relative to the parent project and
+may be called referenced from sub projects.
 
 ## godobin
 

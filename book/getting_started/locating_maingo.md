@@ -2,7 +2,7 @@
 
 Godo compiles and runs a file at the relative path `Gododir/main.go`. If the path does not exist at the current directory, parent directories are searched.
 
-For example, consider this abbreviated directory structure:
+For example, given this directory structure:
 
 ```
 mgutz/

@@ -7,8 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	"gopkg.in/stretchr/testify.v1/assert"
+
 	"github.com/mgutz/str"
-	"github.com/stretchr/testify/assert"
 )
 
 var cat = "cat"

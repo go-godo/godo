@@ -1,13 +1,17 @@
 package util
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"github.com/mgutz/str"
 )
 
 // PackageName determines the package name from sourceFile if it is within $GOPATH
@@ -81,4 +85,75 @@ func StrTemplate(src string, data map[string]interface{}) (string, error) {
 	}
 
 	return buf.String(), nil
+}
+
+// PartitionKV partitions a reader then parses key-value meta using an assignment string.
+//
+// Example
+//
+// PartitionKV(buf.NewBufferString(`
+//   --@ key=SelectUser
+//   SELECT * FROM users;
+// `, "--@", "=") => [{"_kind": "key", "key": "SelectUser", "_body": "SELECT * FROM users;"}]
+func PartitionKV(r io.Reader, prefix string, assignment string) ([]map[string]string, error) {
+	scanner := bufio.NewScanner(r)
+	var buf bytes.Buffer
+	var kv string
+	var text string
+	var result []map[string]string
+	collect := false
+
+	parseKV := func(kv string) {
+		argv := str.ToArgv(kv)
+		body := buf.String()
+		for i, arg := range argv {
+			m := map[string]string{}
+			var key string
+			var value string
+			if strings.Contains(arg, assignment) {
+				parts := strings.Split(arg, assignment)
+				key = parts[0]
+				value = parts[1]
+			} else {
+				key = arg
+				value = ""
+			}
+			m[key] = value
+			m["_body"] = body
+			if i == 0 {
+				m["_kind"] = key
+			}
+			result = append(result, m)
+		}
+	}
+
+	for scanner.Scan() {
+		text = scanner.Text()
+		if strings.HasPrefix(text, prefix) {
+			if kv != "" {
+				parseKV(kv)
+			}
+			kv = text[len(prefix):]
+			collect = true
+			buf.Reset()
+			continue
+		}
+		if collect {
+			buf.WriteString(text)
+			buf.WriteRune('\n')
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	if kv != "" && buf.Len() > 0 {
+		parseKV(kv)
+	}
+
+	if collect {
+		return result, nil
+	}
+
+	return nil, nil
 }

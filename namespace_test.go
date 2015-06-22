@@ -3,7 +3,7 @@ package godo
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"gopkg.in/stretchr/testify.v1/assert"
 )
 
 func TestMultiProject(t *testing.T) {
@@ -86,4 +86,28 @@ func TestNestedNamespaceDependency(t *testing.T) {
 
 	runTask(tasks, "A")
 	assert.Equal(t, levels, "2B:2:0:")
+}
+
+func TestRelativeNamespace(t *testing.T) {
+	levels := ""
+	var subsubTasks = func(p *Project) {
+		p.Task("A", S{"/sub:A"}, func(*Context) {
+			levels += "2:"
+		})
+	}
+	var subTasks = func(p *Project) {
+		p.Use("sub", subsubTasks)
+		p.Task("A", S{"sub:A"}, func(*Context) {
+			levels += "1:"
+		})
+	}
+	var tasks = func(p *Project) {
+		p.Use("sub", subTasks)
+		p.Task("A", S{"sub:sub:A"}, func(*Context) {
+			levels += "0:"
+		})
+	}
+
+	runTask(tasks, "A")
+	assert.Equal(t, "1:2:0:", levels)
 }
