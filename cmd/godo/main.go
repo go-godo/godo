@@ -212,6 +212,14 @@ func buildMain(src string, forceBuild bool) string {
 		if err != nil {
 			panic(fmt.Sprintf("Error building %s: %s\n", src, err.Error()))
 		}
+		// for some reason go build does not delete the exe named after the dir
+		// which ends up with Gododir/Gododir
+		if filepath.Base(dir) == "Gododir" {
+			orphanedFile := filepath.Join(dir, filepath.Base(dir))
+			if _, err := os.Stat(orphanedFile); err == nil {
+				os.Remove(orphanedFile)
+			}
+		}
 	}
 
 	if isRebuild {

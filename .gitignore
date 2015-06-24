@@ -5,3 +5,4 @@ _*
 node_modules
 example/dist
 godobin*
+/cmd/godo/godo
