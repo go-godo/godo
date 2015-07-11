@@ -9,7 +9,7 @@ rake, gulp.
 
 To install
 
-    go get -u github.com/mgutz/godo/v2/cmd/godo
+    go get -u gopkg.in/godo.v2/cmd/godo
 
 ## Godofile
 
@@ -21,48 +21,48 @@ As an example, create a file **Gododir/main.go** with this content
 package main
 
 import (
-	"fmt"
-    . "github.com/mgutz/godo/v2"
+    "fmt"
+    do "gopkg.in/godo.v2"
 )
 
-func tasks(p *Project) {
+func tasks(p *do.Project) {
     Env = `GOPATH=.vendor::$GOPATH`
 
-    p.Task("default", S{"hello", "build"}, nil)
+    p.Task("default", do.S{"hello", "build"}, nil)
 
-    p.Task("hello", nil, func(c *Context) {
+    p.Task("hello", nil, func(c *do.Context) {
         name := c.Args.AsString("name", "n")
         if name == "" {
-            Bash("echo Hello $USER!")
+            c.Bash("echo Hello $USER!")
         } else {
             fmt.Println("Hello", name)
         }
     })
 
-    p.Task("assets?", nil,  func(*Context) {
+    p.Task("assets?", nil,  func(*do.Context) {
         // The "?" tells Godo to run this task ONLY ONCE regardless of
         // how many tasks depend on it. In this case watchify watches
         // on its own.
-		Run("watchify public/js/index.js d -o dist/js/app.bundle.js")
+	c.Run("watchify public/js/index.js d -o dist/js/app.bundle.js")
     }).Src("public/**/*.{css,js,html}")
 
-    p.Task("build", S{"views", "assets"}, func(c *Context) {
-        c.Run("GOOS=linux GOARCH=amd64 go build", In{"cmd/server"})
+    p.Task("build", do.S{"views", "assets"}, func(c *do.Context) {
+        c.Run("GOOS=linux GOARCH=amd64 go build", do.M{"$in": "cmd/server"})
     }).Src("**/*.go")
 
-    p.Task("server", S{"views", "assets"}, func(c *Context) {
+    p.Task("server", do.S{"views", "assets"}, func(c *do.Context) {
         // rebuilds and restarts when a watched file changes
-        c.Start("main.go", M{"$in": "cmd/server"})
+        c.Start("main.go", do.M{"$in": "cmd/server"})
     }).Src("server/**/*.go", "cmd/server/*.{go,json}").
        Debounce(3000)
 
-    p.Task("views", nil, func(c *Context) {
+    p.Task("views", nil, func(c *do.Context) {
         c.Run("razor templates")
     }).Src("templates/**/*.go.html")
 }
 
 func main() {
-    Godo(tasks)
+    do.Godo(tasks)
 }
 ```
 
@@ -82,7 +82,7 @@ Task names may add a "?" suffix to execute only once even when watching
 
 ```go
 // build once regardless of number of dependents
-p.Task("assets?", func() {})
+p.Task("assets?", nil, func(*do.Context) {})
 ```
 
 Task dependencies
@@ -128,7 +128,7 @@ are reserved for `godo`.
 As an example,
 
 ```go
-p.Task("hello", nil, func(c *Context) {
+p.Task("hello", nil, func(c *do.Context) {
     // "(none)" is the default value
     msg := c.Args.MayString("(none)", "message", "msg", "m")
     var name string
@@ -174,27 +174,28 @@ c.Args.AsInt("number", "n")
 ```
 
 
-## Namespaces
+## Modularity and Namespaces
 
-A project may be assigned to a namespace.
+A project may include other tasks functions with `Project#Use`. `Use` requires a namespace to
+prevent task name conflicts with existing tasks.
 
 ```go
-func buildTasks(p *Project) {
+func buildTasks(p *do.Project) {
     p.Task("default", S{"clean"}, nil)
 
-    p.Task("clean", func() {
+    p.Task("clean", nil, func(*do.Context) {
         fmt.Println("build clean")
     })
 }
 
-func tasks(p *Project) {
+func tasks(p *do.Project) {
     p.Use("build", otherTasks)
 
-    p.Task("clean", nil, func(*Context) {
+    p.Task("clean", nil, func(*do.Context) {
         fmt.Println("root clean")
     })
 
-    p.Task("build", S{"build:default"}, func(*Context) {
+    p.Task("build", do.S{"build:default"}, func(*do.Context) {
         fmt.Println("root clean")
     })
 }
@@ -237,7 +238,7 @@ Bash(`
 Bash can use Go templates
 
 ```go
-Bash(`echo -n {{.name}}`, M{"name": "mario", "$in": "cmd/bar"})
+Bash(`echo -n {{.name}}`, do.M{"name": "mario", "$in": "cmd/bar"})
 ```
 
 Run a bash script and capture STDOUT and STDERR.
@@ -251,13 +252,13 @@ output, err := BashOutput(`echo -n $USER`)
 Run `go build` inside of cmd/app and set environment variables.
 
 ```go
-Run(`GOOS=linux GOARCH=amd64 go build`, M{"$in": "cmd/app"})
+Run(`GOOS=linux GOARCH=amd64 go build`, do.M{"$in": "cmd/app"})
 ```
 
 Run can use Go templates
 
 ```go
-Run(`echo -n {{.name}}`, M{"name": "mario", "$in": "cmd/app"})
+Run(`echo -n {{.name}}`, do.M{"name": "mario", "$in": "cmd/app"})
 ```
 
 Run and capture STDOUT and STDERR
