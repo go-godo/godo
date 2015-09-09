@@ -189,7 +189,7 @@ func buildTasks(p *do.Project) {
 }
 
 func tasks(p *do.Project) {
-    p.Use("build", otherTasks)
+    p.Use("build", buildTasks)
 
     p.Task("clean", nil, func(*do.Context) {
         fmt.Println("root clean")
