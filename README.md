@@ -39,7 +39,7 @@ func tasks(p *do.Project) {
         }
     })
 
-    p.Task("assets?", nil,  func(*do.Context) {
+    p.Task("assets?", nil,  func(c *do.Context) {
         // The "?" tells Godo to run this task ONLY ONCE regardless of
         // how many tasks depend on it. In this case watchify watches
         // on its own.
@@ -189,7 +189,7 @@ func buildTasks(p *do.Project) {
 }
 
 func tasks(p *do.Project) {
-    p.Use("build", otherTasks)
+    p.Use("build", buildTasks)
 
     p.Task("clean", nil, func(*do.Context) {
         fmt.Println("root clean")
