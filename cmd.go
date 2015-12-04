@@ -120,6 +120,7 @@ func killSpawned(command string) {
 	}
 
 	err := process.Kill()
+	//err := syscall.Kill(-process.Pid, syscall.SIGKILL)
 	delete(Processes, command)
 	if err != nil && !strings.Contains(err.Error(), "process already finished") {
 		util.Error("Start", "Could not kill existing process %+v\n%s\n", process, err.Error())

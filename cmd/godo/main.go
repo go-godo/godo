@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
+	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -104,6 +106,8 @@ func buildCommand(godoFile string, forceBuild bool) (*exec.Cmd, string) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+
 	return cmd, exe
 }
 
@@ -143,16 +147,29 @@ func runAndWatch(godoFile string) {
 
 	<-time.After(godo.GetWatchDelay() + (300 * time.Millisecond))
 
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		for range c {
+			syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+			os.Exit(0)
+		}
+	}()
+
 	// forloop:
 	for {
 		select {
 		case event := <-watchr.Event:
-			if event.Path == exe {
+			// looks like go build starts with the output file as the dir, then
+			// renames it to output file
+			if event.Path == exe || event.Path == path.Join(path.Dir(exe), path.Base(path.Dir(exe))) {
 				continue
 			}
 			util.Debug("watchmain", "%+v\n", event)
-			syscall.Kill(cmd.Process.Pid, syscall.SIGQUIT)
-			cmd.Process.Kill()
+			err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+			if err != nil {
+				panic(err)
+			}
 			<-done
 			cmd, _ = run(true)
 		}
