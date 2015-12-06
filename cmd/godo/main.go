@@ -151,7 +151,7 @@ func runAndWatch(godoFile string) {
 	signal.Notify(c, os.Interrupt)
 	go func() {
 		for range c {
-			syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+			killGodo(cmd)
 			os.Exit(0)
 		}
 	}()
@@ -166,15 +166,23 @@ func runAndWatch(godoFile string) {
 				continue
 			}
 			util.Debug("watchmain", "%+v\n", event)
-			err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
-			if err != nil {
-				panic(err)
-			}
+			killGodo(cmd)
 			<-done
 			cmd, _ = run(true)
 		}
 	}
 
+}
+
+// killGodo kills the spawned godo process.
+func killGodo(cmd *exec.Cmd) {
+	// process group may not be cross platform but on Darwin and Linux, this
+	// is the only way to kill child processes
+	pgid, err := syscall.Getpgid(cmd.Process.Pid)
+	if err != nil {
+		panic(err)
+	}
+	syscall.Kill(-pgid, syscall.SIGKILL)
 }
 
 func mustBeMain(src string) {
