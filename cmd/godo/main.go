@@ -109,6 +109,15 @@ func buildCommand(godoFile string, forceBuild bool) (*exec.Cmd, string) {
 	//cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	// process godoenv file
+	env := godoenv(godoFile)
+	if env != "" {
+		cmd.Env = godo.EffectiveEnv(godo.ParseStringEnv(env))
+	}
+
+	return cmd, exe
+}
+
+func godoenv(godoFile string) string {
 	godoenvFile := filepath.Join(filepath.Dir(godoFile), "godoenv")
 	if _, err := os.Stat(godoenvFile); err == nil {
 		b, err := ioutil.ReadFile(godoenvFile)
@@ -116,11 +125,9 @@ func buildCommand(godoFile string, forceBuild bool) (*exec.Cmd, string) {
 			util.Error("godo", "Cannot read %s file", godoenvFile)
 			os.Exit(1)
 		}
-		s := string(b)
-		cmd.Env = godo.EffectiveEnv(godo.ParseStringEnv(s))
+		return string(b)
 	}
-
-	return cmd, exe
+	return ""
 }
 
 func runAndWatch(godoFile string) {
@@ -248,6 +255,10 @@ func buildMain(src string, forceBuild bool) string {
 
 	if build {
 		util.Debug("godo", reasonFormat, exe)
+		env := godoenv(src)
+		if env != "" {
+			godo.Env = env
+		}
 		_, err := godo.Run("go build -a -o "+exeFile, godo.M{"$in": dir})
 		if err != nil {
 			panic(fmt.Sprintf("Error building %s: %s\n", src, err.Error()))
