@@ -26,7 +26,7 @@ import (
 )
 
 func tasks(p *do.Project) {
-    Env = `GOPATH=.vendor::$GOPATH`
+    do.Env = `GOPATH=.vendor::$GOPATH`
 
     p.Task("default", do.S{"hello", "build"}, nil)
 
@@ -43,7 +43,7 @@ func tasks(p *do.Project) {
         // The "?" tells Godo to run this task ONLY ONCE regardless of
         // how many tasks depend on it. In this case watchify watches
         // on its own.
-	c.Run("watchify public/js/index.js d -o dist/js/app.bundle.js")
+	    c.Run("watchify public/js/index.js d -o dist/js/app.bundle.js")
     }).Src("public/**/*.{css,js,html}")
 
     p.Task("build", do.S{"views", "assets"}, func(c *do.Context) {
@@ -355,3 +355,13 @@ The effective environment for exec functions is: `parent (if inherited) <- Env <
 
 Paths should use `::` as a cross-platform path list separator. On Windows `::` is replaced with `;`.
 On Mac and linux `::` is replaced with `:`.
+
+### From godoenv file
+
+For special circumstances where the GOPATH needs to be set before building the Gododir,
+use `Gododir/godoenv` file.
+
+```
+    # Gododir/godoenv
+    GOPATH=$PWD/cmd/app/Godeps/_workspace::$GOPATH
+```

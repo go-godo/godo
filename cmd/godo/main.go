@@ -106,7 +106,19 @@ func buildCommand(godoFile string, forceBuild bool) (*exec.Cmd, string) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	//cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+
+	// process godoenv file
+	godoenvFile := filepath.Join(filepath.Dir(godoFile), "godoenv")
+	if _, err := os.Stat(godoenvFile); err == nil {
+		b, err := ioutil.ReadFile(godoenvFile)
+		if err != nil {
+			util.Error("godo", "Cannot read %s file", godoenvFile)
+			os.Exit(1)
+		}
+		s := string(b)
+		cmd.Env = godo.EffectiveEnv(godo.ParseStringEnv(s))
+	}
 
 	return cmd, exe
 }
@@ -151,7 +163,7 @@ func runAndWatch(godoFile string) {
 	signal.Notify(c, os.Interrupt)
 	go func() {
 		for range c {
-			killGodo(cmd)
+			killGodo(cmd, false)
 			os.Exit(0)
 		}
 	}()
@@ -166,7 +178,7 @@ func runAndWatch(godoFile string) {
 				continue
 			}
 			util.Debug("watchmain", "%+v\n", event)
-			killGodo(cmd)
+			killGodo(cmd, true)
 			<-done
 			cmd, _ = run(true)
 		}
@@ -175,14 +187,17 @@ func runAndWatch(godoFile string) {
 }
 
 // killGodo kills the spawned godo process.
-func killGodo(cmd *exec.Cmd) {
+func killGodo(cmd *exec.Cmd, killProcessGroup bool) {
+	cmd.Process.Kill()
 	// process group may not be cross platform but on Darwin and Linux, this
 	// is the only way to kill child processes
-	pgid, err := syscall.Getpgid(cmd.Process.Pid)
-	if err != nil {
-		panic(err)
+	if killProcessGroup {
+		pgid, err := syscall.Getpgid(cmd.Process.Pid)
+		if err != nil {
+			panic(err)
+		}
+		syscall.Kill(-pgid, syscall.SIGKILL)
 	}
-	syscall.Kill(-pgid, syscall.SIGKILL)
 }
 
 func mustBeMain(src string) {

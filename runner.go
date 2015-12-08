@@ -8,9 +8,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/mgutz/minimist"
 	"gopkg.in/godo.v2/util"
 	"gopkg.in/godo.v2/watcher"
-	"github.com/mgutz/minimist"
 )
 
 // Message are sent on the Events channel

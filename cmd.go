@@ -46,7 +46,7 @@ func (gcmd *command) toExecCmd() (cmd *exec.Cmd, err error) {
 		cmd.Dir = gcmd.wd
 	}
 
-	cmd.Env = effectiveEnv(gcmd.env)
+	cmd.Env = EffectiveEnv(gcmd.env)
 	cmd.Stdin = os.Stdin
 
 	if gcmd.capture&CaptureStderr > 0 {

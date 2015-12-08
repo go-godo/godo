@@ -23,13 +23,13 @@ func TestEnvironment(t *testing.T) {
 	}
 
 	SetEnviron("USER=$USER:godo", true)
-	env := effectiveEnv(nil)
+	env := EffectiveEnv(nil)
 	if !sliceContains(env, "USER="+user+":godo") {
 		t.Error("Environment interpolation failed", env)
 	}
 
 	SetEnviron("USER=$USER:godo", false)
-	env = effectiveEnv(nil)
+	env = EffectiveEnv(nil)
 	if len(env) != 1 {
 		t.Error("Disabling parent inheritance failed")
 	}
@@ -40,7 +40,7 @@ func TestEnvironment(t *testing.T) {
 	// set back to defaults
 	SetEnviron("", true)
 	l := len(os.Environ())
-	env = effectiveEnv([]string{"USER=$USER:$USER:func"})
+	env = EffectiveEnv([]string{"USER=$USER:$USER:func"})
 	if !sliceContains(env, "USER="+user+":"+user+":func") {
 		t.Error("Should have been overriden by func environmnt")
 	}
@@ -48,7 +48,7 @@ func TestEnvironment(t *testing.T) {
 		t.Error("Effective environment length changed")
 	}
 
-	env = effectiveEnv([]string{"GOSU_NEW_VAR=foo"})
+	env = EffectiveEnv([]string{"GOSU_NEW_VAR=foo"})
 	if !sliceContains(env, "GOSU_NEW_VAR=foo") {
 		t.Error("Should have new var")
 	}
@@ -60,7 +60,7 @@ func TestEnvironment(t *testing.T) {
 		USER1=$USER
 		USER2=$USER1
 	`, true)
-	env = effectiveEnv([]string{"USER3=$USER2"})
+	env = EffectiveEnv([]string{"USER3=$USER2"})
 	if !sliceContains(env, "USER1="+user) {
 		t.Error("Should have interpolated from parent env")
 	}
@@ -68,7 +68,7 @@ func TestEnvironment(t *testing.T) {
 		t.Error("Should have interpolated from effective env")
 	}
 
-	env = effectiveEnv([]string{"PATH=foo::bar::bah"})
+	env = EffectiveEnv([]string{"PATH=foo::bar::bah"})
 	if !sliceContains(env, "PATH=foo"+string(os.PathListSeparator)+"bar"+string(os.PathListSeparator)+"bah") {
 		t.Error("Should have replaced PathSeparator, got", env)
 	}
@@ -80,7 +80,7 @@ func TestEnvironment(t *testing.T) {
 func TestQuotedVar(t *testing.T) {
 	// set back to defaults
 	defer SetEnviron("", true)
-	env := effectiveEnv([]string{`FOO="a=bar b=bah c=baz"`})
+	env := EffectiveEnv([]string{`FOO="a=bar b=bah c=baz"`})
 	v := getEnv(env, "FOO", false)
 	if v != `"a=bar b=bah c=baz"` {
 		t.Errorf("Quoted var failed %q", v)
@@ -94,7 +94,7 @@ func TestExpansion(t *testing.T) {
 		OK=${FOO}bar:godo
 	`, true)
 
-	env := effectiveEnv([]string{})
+	env := EffectiveEnv([]string{})
 	if !sliceContains(env, "FAIL=:godo") {
 		t.Error("$FOObar should not have interpolated")
 	}

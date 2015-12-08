@@ -21,8 +21,8 @@ func init() {
 	// util.LogWriter = devnull
 
 	// WatchDelay is the time to poll the file system
-	SetWatchDelay(200 * time.Millisecond)
-	testWatchDelay = watchDelay + 50*time.Millisecond
+	SetWatchDelay(150 * time.Millisecond)
+	testWatchDelay = watchDelay + 250*time.Millisecond
 
 	// Debounce should be less han watch delay
 	Debounce = 100 * time.Millisecond

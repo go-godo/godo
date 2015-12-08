@@ -43,7 +43,7 @@ func SetEnviron(envstr string, inheritParent bool) {
 
 	// merge in package Env
 	if envstr != "" {
-		for _, kv := range parseStringEnv(envstr) {
+		for _, kv := range ParseStringEnv(envstr) {
 			upsertenv(&environ, kv)
 		}
 	}
@@ -70,7 +70,7 @@ func interpolateEnv(env []string, kv string) string {
 
 // Getenv environment variable from a string array.
 func Getenv(key string) string {
-	envvars := parseStringEnv(Env)
+	envvars := ParseStringEnv(Env)
 	return getEnv(envvars, key, true)
 }
 
@@ -123,8 +123,8 @@ func upsertenv(env *[]string, kv string) {
 	}
 }
 
-// effectiveEnv is the effective environment for an exec function.
-func effectiveEnv(funcEnv []string) []string {
+// EffectiveEnv is the effective environment for an exec function.
+func EffectiveEnv(funcEnv []string) []string {
 
 	if environ == nil {
 		SetEnviron(Env, InheritParentEnv)
@@ -142,9 +142,9 @@ func effectiveEnv(funcEnv []string) []string {
 	return env
 }
 
-// parseStringEnv parse the package Env string and converts it into an
+// ParseStringEnv parse the package Env string and converts it into an
 // environment slice.
-func parseStringEnv(s string) []string {
+func ParseStringEnv(s string) []string {
 	env := []string{}
 
 	if s == "" {
