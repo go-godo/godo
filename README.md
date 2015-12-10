@@ -66,7 +66,7 @@ func main() {
 }
 ```
 
-To run "server" task from parent dir of `tasks/`
+To run "server" task from parent dir of `Gododir/`
 
     godo server
 
@@ -82,15 +82,15 @@ Task names may add a "?" suffix to execute only once even when watching
 
 ```go
 // build once regardless of number of dependents
-p.Task("assets?", nil, func(*do.Context) {})
+p.Task("assets?", nil, func(*do.Context) { })
 ```
 
 Task dependencies
 
-    S{} or Series{} - dependent tasks to run in series
-    P{} or Parallel{} - dependent tasks to run in parallel
+    do.S{} or do.Series{} - dependent tasks to run in series
+    do.P{} or do.Parallel{} - dependent tasks to run in parallel
 
-    For example, S{"clean", P{"stylesheets", "templates"}, "build"}
+    For example, do.S{"clean", do.P{"stylesheets", "templates"}, "build"}
 
 
 ### Task Option Funcs
@@ -115,7 +115,7 @@ Task dependencies
 *   Task#Debounce(duration time.Duration) - Disallow a task from running until duration
     has elapsed.
 
-*   Task#Deps(names ...interface{}) - Can be `{S, Series, P, Parallel, string}`
+*   Task#Deps(names ...interface{}) - Can be `S, Series, P, Parallel, string`
 
 
 ### Task CLI Arguments
@@ -228,7 +228,7 @@ Bash functions uses the bash executable and may not run on all OS.
 Run a bash script string. The script can be multiline line with continutation.
 
 ```go
-Bash(`
+c.Bash(`
     echo -n $USER
     echo some really long \
         command
@@ -238,13 +238,13 @@ Bash(`
 Bash can use Go templates
 
 ```go
-Bash(`echo -n {{.name}}`, do.M{"name": "mario", "$in": "cmd/bar"})
+c.Bash(`echo -n {{.name}}`, do.M{"name": "mario", "$in": "cmd/bar"})
 ```
 
 Run a bash script and capture STDOUT and STDERR.
 
 ```go
-output, err := BashOutput(`echo -n $USER`)
+output, err := c.BashOutput(`echo -n $USER`)
 ```
 
 ### Run
@@ -252,19 +252,19 @@ output, err := BashOutput(`echo -n $USER`)
 Run `go build` inside of cmd/app and set environment variables.
 
 ```go
-Run(`GOOS=linux GOARCH=amd64 go build`, do.M{"$in": "cmd/app"})
+c.Run(`GOOS=linux GOARCH=amd64 go build`, do.M{"$in": "cmd/app"})
 ```
 
 Run can use Go templates
 
 ```go
-Run(`echo -n {{.name}}`, do.M{"name": "mario", "$in": "cmd/app"})
+c.Run(`echo -n {{.name}}`, do.M{"name": "mario", "$in": "cmd/app"})
 ```
 
 Run and capture STDOUT and STDERR
 
 ```go
-output, err := RunOutput("whoami")
+output, err := c.RunOutput("whoami")
 ```
 
 ### Start
@@ -273,7 +273,7 @@ Start an async command. If the executable has suffix ".go" then it will be "go i
 Use this for watching a server task.
 
 ```go
-Start("main.go", M{"$in": "cmd/app"})
+c.Start("main.go", do.M{"$in": "cmd/app"})
 ```
 
 Godo tracks the process ID of started processes to restart the app gracefully.
@@ -284,9 +284,9 @@ To run many commands inside a directory, use `Inside` instead of the `$in` optio
 `Inside` changes the working directory.
 
 ```go
-Inside("somedir", func() {
-    Run("...")
-    Bash("...")
+do.Inside("somedir", func() {
+    do.Run("...")
+    do.Bash("...")
 })
 ```
 
@@ -295,13 +295,13 @@ Inside("somedir", func() {
 To get plain string
 
 ```go
-user := Prompt("user: ")
+user := do.Prompt("user: ")
 ```
 
 To get password
 
 ```go
-password := PromptPassword("password: ")
+password := do.PromptPassword("password: ")
 ```
 
 ## Godofile Run-Time Environment
@@ -321,37 +321,30 @@ To specify whether to inherit from parent's process environment,
 set `InheritParentEnv`. This setting defaults to true
 
 ```go
-InheritParentEnv = false
+do.InheritParentEnv = false
 ```
 
 To specify the base environment for your tasks, set `Env`.
 Separate with whitespace or newlines.
 
 ```go
-Env = `
+do.Env = `
     GOPATH=.vendor::$GOPATH
     PG_USER=mario
 `
 ```
 
-TIP: Set the `Env` when using a dependency manager like `godep`
-
-```go
-wd, _ := os.Getwd()
-ws := path.Join(wd, "Godeps/_workspace")
-Env = fmt.Sprintf("GOPATH=%s::$GOPATH", ws)
-```
 Functions can add or override environment variables as part of the command string.
 Note that environment variables are set before the executable similar to a shell;
 however, the `Run` and `Start` functions do not use a shell.
 
 ```go
-p.Task("build", nil, func(c *Context) {
+p.Task("build", nil, func(c *do.Context) {
     c.Run("GOOS=linux GOARCH=amd64 go build" )
 })
 ```
 
-The effective environment for exec functions is: `parent (if inherited) <- Env <- func parsed env`
+The effective environment for exec functions is: `parent (if inherited) <- do.Env <- func parsed env`
 
 Paths should use `::` as a cross-platform path list separator. On Windows `::` is replaced with `;`.
 On Mac and linux `::` is replaced with `:`.
@@ -361,7 +354,10 @@ On Mac and linux `::` is replaced with `:`.
 For special circumstances where the GOPATH needs to be set before building the Gododir,
 use `Gododir/godoenv` file.
 
+TIP: Create `Gododir/godoenv` when using a dependency manager like `godep` that necessitates
+changing `$GOPATH`
+
 ```
-    # Gododir/godoenv
-    GOPATH=$PWD/cmd/app/Godeps/_workspace::$GOPATH
+# Gododir/godoenv
+GOPATH=$PWD/cmd/app/Godeps/_workspace::$GOPATH
 ```
