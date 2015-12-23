@@ -11,7 +11,7 @@ import (
 	"gopkg.in/godo.v2/util"
 )
 
-// Proccesses are the processes spawned by Start()
+// Processes are the processes spawned by Start()
 var Processes = make(map[string]*os.Process)
 
 const (
@@ -63,6 +63,9 @@ func (gcmd *command) toExecCmd() (cmd *exec.Cmd, err error) {
 	if verbose {
 		if Env != "" {
 			util.Debug("#", "Env: %s\n", Env)
+		}
+		if gcmd.wd != "" {
+			util.Debug("#", "Dir: %s\n", gcmd.wd)
 		}
 		util.Debug("#", "%s\n", gcmd.commandstr)
 	}

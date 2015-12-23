@@ -167,7 +167,7 @@ func (task *Task) RunWithEvent(logName string, e *watcher.FileEvent) (err error)
 
 	log := true
 	if task.Handler != nil {
-		context := Context{Task: task, Args: task.argm}
+		context := Context{Task: task, Args: task.argm, FileEvent: e}
 		defer func() {
 			if p := recover(); p != nil {
 				sp, ok := p.(*softPanic)

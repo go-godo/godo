@@ -166,7 +166,7 @@ func (project *Project) runTask(depName string, parentName string, e *watcher.Fi
 	proj, _, taskName := project.mustTask(depName)
 
 	if proj == nil {
-		fmt.Errorf("Project was not loaded for \"%s\" task", parentName)
+		return fmt.Errorf("Project was not loaded for \"%s\" task", parentName)
 	}
 	return proj.runWithEvent(taskName, parentName+">"+depName, e)
 }

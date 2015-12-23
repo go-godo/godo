@@ -66,7 +66,8 @@ func (context *Context) Start(cmd string, options ...map[string]interface{}) {
 		logVerbose(context.Task.Name, "Context is in error. Skipping: %s\n", cmd)
 		return
 	}
-	err := Start(cmd, options...)
+
+	err := startEx(context, cmd, options)
 	if err != nil {
 		context.Error = err
 	}

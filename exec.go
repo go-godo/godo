@@ -51,6 +51,42 @@ func RunOutput(commandstr string, options ...map[string]interface{}) (string, er
 //
 // The working directory is optional.
 func Start(commandstr string, options ...map[string]interface{}) error {
+	return startEx(nil, commandstr, options)
+	// m, dir, _, err := parseOptions(options)
+	// if err != nil {
+	// 	return err
+	// }
+	// if strings.Contains(commandstr, "{{") {
+	// 	commandstr, err = util.StrTemplate(commandstr, m)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
+	// executable, argv, env := splitCommand(commandstr)
+	// isGoFile := strings.HasSuffix(executable, ".go")
+	// if isGoFile {
+	// 	_, err = Run("go install -a", m)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	executable = filepath.Base(dir)
+	// }
+	// cmd := &command{
+	// 	executable: executable,
+	// 	wd:         dir,
+	// 	env:        env,
+	// 	argv:       argv,
+	// 	commandstr: commandstr,
+	// }
+	// return cmd.runAsync()
+}
+
+func rebuildPackage(filename string) error {
+	_, err := Run("go build", M{"$in": filepath.Dir(filename)})
+	return err
+}
+
+func startEx(context *Context, commandstr string, options []map[string]interface{}) error {
 	m, dir, _, err := parseOptions(options)
 	if err != nil {
 		return err
@@ -62,9 +98,34 @@ func Start(commandstr string, options ...map[string]interface{}) error {
 		}
 	}
 	executable, argv, env := splitCommand(commandstr)
+	if context != nil && context.FileEvent != nil {
+		event := context.FileEvent
+		absPath, err := filepath.Abs(filepath.Join(dir, executable))
+		if err != nil {
+			return err
+		}
+		if filepath.Ext(event.Path) == ".go" && event.Path != absPath {
+			var p string
+			wd, err := os.Getwd()
+			if err != nil {
+				return err
+			}
+			p, err = filepath.Rel(wd, event.Path)
+			if err != nil {
+				p = event.Path
+			}
+			util.Info(context.Task.Name, "rebuilding %s...\n", filepath.Dir(p))
+			rebuildPackage(event.Path)
+		}
+	}
 	isGoFile := strings.HasSuffix(executable, ".go")
 	if isGoFile {
-		_, err = Run("go install -a", m)
+		cmdstr := "go install"
+		if context == nil || context.FileEvent == nil {
+			util.Info(context.Task.Name, "rebuilding with -a to ensure clean build (might take awhile)\n")
+			cmdstr += " -a"
+		}
+		_, err = Run(cmdstr, m)
 		if err != nil {
 			return err
 		}
