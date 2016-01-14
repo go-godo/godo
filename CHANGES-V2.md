@@ -1,3 +1,14 @@
+v2.0.4 / 2016-01-14
+===================
+
+  * remove commented code
+  * Context.Start: improve rebuild time on watch by building changed file's package only instead of using -a flag
+
+v2.0.3 / 2015-12-10
+===================
+
+  * update README
+  * fix godoenv parsing on rebuild
 [x] Tasks have Src -> Dest to more efficiently watch and rebuild
 
 [x] Run dependencies in Parallel or Series
