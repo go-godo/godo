@@ -52,33 +52,6 @@ func RunOutput(commandstr string, options ...map[string]interface{}) (string, er
 // The working directory is optional.
 func Start(commandstr string, options ...map[string]interface{}) error {
 	return startEx(nil, commandstr, options)
-	// m, dir, _, err := parseOptions(options)
-	// if err != nil {
-	// 	return err
-	// }
-	// if strings.Contains(commandstr, "{{") {
-	// 	commandstr, err = util.StrTemplate(commandstr, m)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-	// executable, argv, env := splitCommand(commandstr)
-	// isGoFile := strings.HasSuffix(executable, ".go")
-	// if isGoFile {
-	// 	_, err = Run("go install -a", m)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	executable = filepath.Base(dir)
-	// }
-	// cmd := &command{
-	// 	executable: executable,
-	// 	wd:         dir,
-	// 	env:        env,
-	// 	argv:       argv,
-	// 	commandstr: commandstr,
-	// }
-	// return cmd.runAsync()
 }
 
 func rebuildPackage(filename string) error {
