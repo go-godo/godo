@@ -330,7 +330,7 @@ func (project *Project) Task(name string, dependencies Dependency, handler func(
 		task.dependencies = append(task.dependencies, dependencies)
 	}
 
-	project.Tasks[name] = task
+	project.Tasks[task.Name] = task
 	return task
 }
 
