@@ -216,3 +216,23 @@ func TestTaskD(t *testing.T) {
 	runTask(tasks, "default")
 	assert.Equal(t, "A", trace)
 }
+
+func TestRunOnce(t *testing.T) {
+	trace := ""
+	tasks := func(p *Project) {
+		p.Task("once?", nil, func(*Context) {
+			trace += "1"
+		})
+
+		p.Task("A", S{"once"}, func(*Context) {
+			trace += "A"
+		})
+
+		p.Task("B", S{"once"}, func(*Context) {
+			trace += "B"
+		})
+	}
+
+	execCLI(tasks, []string{"A", "B"}, nil)
+	assert.Equal(t, "1AB", trace)
+}
