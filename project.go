@@ -344,7 +344,7 @@ func (project *Project) Task1(name string, handler func(*Context)) *Task {
 
 	task.Handler = HandlerFunc(handler)
 
-	project.Tasks[name] = task
+	project.Tasks[task.Name] = task
 	return task
 }
 
@@ -357,7 +357,7 @@ func (project *Project) TaskD(name string, dependencies Dependency) *Task {
 	}
 
 	task.dependencies = append(task.dependencies, dependencies)
-	project.Tasks[name] = task
+	project.Tasks[task.Name] = task
 	return task
 }
 
