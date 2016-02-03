@@ -132,7 +132,7 @@ p.Task("hello", nil, func(c *do.Context) {
     // "(none)" is the default value
     msg := c.Args.MayString("(none)", "message", "msg", "m")
     var name string
-    if len(c.Args.NonFlags() == 1) {
+    if len(c.Args.NonFlags()) == 1 {
         name = c.Args.NonFlags()[0]
     }
     fmt.Println(msg, name)
