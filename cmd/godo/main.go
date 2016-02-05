@@ -59,8 +59,8 @@ func main() {
 	}
 
 	if src == "" {
-		fmt.Printf("\n\n%s not found\n", src)
-		os.Exit(1)
+		godo.Usage("")
+		os.Exit(0)
 	}
 
 	wd, err := os.Getwd()
