@@ -191,7 +191,11 @@ func (task *Task) RunWithEvent(logName string, e *watcher.FileEvent) (err error)
 	}
 
 	if log {
-		util.Info(logName, "%s%vms\n", rebuilt, time.Since(start).Nanoseconds()/1e6)
+		if rebuilt != "" {
+			util.InfoColorful(logName, "%s%vms\n", rebuilt, time.Since(start).Nanoseconds()/1e6)
+		} else {
+			util.Info(logName, "%s%vms\n", rebuilt, time.Since(start).Nanoseconds()/1e6)
+		}
 	}
 
 	task.Complete = true

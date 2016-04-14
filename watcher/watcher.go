@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/godo.v2/watcher/fswatch"
 	"github.com/mgutz/str"
+	"gopkg.in/godo.v2/watcher/fswatch"
 )
 
 const (
@@ -42,6 +42,8 @@ type Watcher struct {
 	ErrorHandler func(err error)
 	isClosed     bool
 	quit         chan bool
+	cache        map[string]*os.FileInfo
+	mu           sync.Mutex
 }
 
 // NewWatcher creates an instance of watcher.
@@ -57,6 +59,7 @@ func NewWatcher(bufferSize int) (watcher *Watcher, err error) {
 		Error:        make(chan error, 10),
 		Event:        make(chan *FileEvent, bufferSize),
 		IgnorePathFn: DefaultIgnorePathFn,
+		cache:        map[string]*os.FileInfo{},
 	}
 	return
 }
@@ -73,8 +76,8 @@ func (w *Watcher) Close() error {
 }
 
 func (w *Watcher) eventLoop() {
-	cache := map[string]*os.FileInfo{}
-	mu := &sync.Mutex{}
+	// cache := map[string]*os.FileInfo{}
+	// mu := &sync.Mutex{}
 
 	coutput := w.Watcher.Start()
 	for {
@@ -108,14 +111,22 @@ func (w *Watcher) eventLoop() {
 		// compare the current stats of a file against its last stats
 		// (if any) and if it falls within a nanoseconds threshold,
 		// ignore it.
-		mu.Lock()
-		oldFI := cache[event.Path]
-		cache[event.Path] = &fi
-		mu.Unlock()
+		w.mu.Lock()
+		oldFI := w.cache[event.Path]
+		w.cache[event.Path] = &fi
+
+		// if oldFI != nil {
+		// 	fmt.Println("new FI", fi.ModTime().UnixNano())
+		// 	fmt.Println("old FI", (*oldFI).ModTime().UnixNano()+IgnoreThresholdRange)
+		// }
 
 		if oldFI != nil && fi.ModTime().UnixNano() < (*oldFI).ModTime().UnixNano()+IgnoreThresholdRange {
+			w.mu.Unlock()
 			continue
 		}
+		w.mu.Unlock()
+
+		//fmt.Println("sending Event", fi.Name())
 
 		//fmt.Println("sending fi wevent", event)
 		w.Event <- newFileEvent(event.Event, event.Path, fi.ModTime().UnixNano())

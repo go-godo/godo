@@ -162,7 +162,7 @@ func runAndWatch(godoFile string) {
 	// this function will block forever, Ctrl+C to quit app
 	// var lastHappenedTime int64
 	watchr.Start()
-	util.Info("godo", "watching %s ...\n", godoDir)
+	util.Info("godo", "watching %s\n", godoDir)
 
 	<-time.After(godo.GetWatchDelay() + (300 * time.Millisecond))
 

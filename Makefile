@@ -1,5 +1,5 @@
 .PHONY: build get
 
 build:
-	@cd cmd/godo && go install
+	@cd cmd/godo && go install -a
 

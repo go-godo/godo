@@ -3,6 +3,7 @@ package godo
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -366,15 +367,7 @@ func (project *Project) watchTask(task *Task, root string, logName string, handl
 		return watcher.DefaultIgnorePathFn(p) || !task.isWatchedFile(p)
 	}
 
-	// if len(task.EffectiveWatchRegexps) == 0 {
-	// 	util.Error("godo", "EffectiveWatchRegexps should not be zero")
-	// } else {
-	// 	ignorePathFn = func(p string) bool {
-	// 		return watcher.DefaultIgnorePathFn(p) || !task.isWatchedFile(p)
-	// 	}
-	// }
-
-	bufferSize := 2048
+	const bufferSize = 2048
 	watchr, err := watcher.NewWatcher(bufferSize)
 	if err != nil {
 		util.Panic("project", "%v\n", err)
@@ -386,8 +379,12 @@ func (project *Project) watchTask(task *Task, root string, logName string, handl
 	watchr.WatchRecursive(root)
 
 	// this function will block forever, Ctrl+C to quit app
-	// var lastHappenedTime int64
-	util.Info(logName, "watching %s ...\n", root)
+	abs, err := filepath.Abs(root)
+	if err != nil {
+		fmt.Println("Could not get absolute path", err)
+		return
+	}
+	util.Info(logName, "watching %s\n", abs)
 
 	// not sure why this need to be unbuffered, but it was blocking
 	// on cquit <- true
@@ -400,7 +397,9 @@ forloop:
 	for {
 		select {
 		case event := <-watchr.Event:
-			//util.Debug("DBG", "handling watchr.Event %+v\n", event)
+			if event.Path != "" {
+				util.InfoColorful("godo", "%s changed\n", event.Path)
+			}
 			handler(event)
 		case <-cquit:
 			watchr.Stop()
@@ -415,13 +414,18 @@ func (project *Project) Define(fn func(*Project)) {
 }
 
 func calculateWatchPaths(patterns []string) []string {
+	//fmt.Println("DBG:calculateWatchPaths patterns", patterns)
 	paths := map[string]bool{}
 	for _, pat := range patterns {
 		if pat == "" {
 			continue
 		}
 		path := glob.PatternRoot(pat)
-		paths[path] = true
+		abs, err := filepath.Abs(path)
+		if err != nil {
+			fmt.Println("Error calculating watch paths", err)
+		}
+		paths[abs] = true
 	}
 
 	var keys []string
@@ -429,6 +433,7 @@ func calculateWatchPaths(patterns []string) []string {
 		keys = append(keys, key)
 	}
 	sort.Strings(keys)
+	//fmt.Println("DBG:calculateWatchPaths keys", keys)
 
 	// skip any directories that overlap each other, eg test/sub should be
 	// ignored if test/ is in paths
@@ -447,9 +452,15 @@ func calculateWatchPaths(patterns []string) []string {
 		if skip[dir] {
 			continue
 		}
-		keep = append(keep, dir)
+		rel, err := filepath.Rel(wd, dir)
+		if err != nil {
+			fmt.Println("Error calculating relative path", err)
+			continue
+		}
+		keep = append(keep, rel)
 	}
 
+	//fmt.Println("DBG:calculateWatchPaths keep", keep)
 	return keep
 }
 
