@@ -66,7 +66,7 @@ func Usage(tasks string) {
 	// go's flag package prints ugly screen
 	format := `godo %s - do task(s)
 
-Usage: godo [flags] [task...]
+Usage: godo [task...] [flags]
   -D             Print deprecated warnings
       --dump     Dump debug info about the project
   -h, --help     This screen
