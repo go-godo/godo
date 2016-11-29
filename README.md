@@ -2,7 +2,7 @@
 
 # godo
 
-[godoc](https://godoc.org/github.com/mgutz/godo/v2)
+[![GoDoc](https://godoc.org/github.com/go-godo/godo?status.svg)](https://godoc.org/github.com/go-godo/godo)
 
 godo is a task runner and file watcher for golang in the spirit of
 rake, gulp.
