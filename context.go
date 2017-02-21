@@ -83,7 +83,6 @@ func (context *Context) BashOutput(script string, options ...map[string]interfac
 	s, err := Bash(script, options...)
 	if err != nil {
 		context.Error = err
-		return ""
 	}
 	return s
 }
@@ -98,7 +97,6 @@ func (context *Context) RunOutput(commandstr string, options ...map[string]inter
 	s, err := Run(commandstr, options...)
 	if err != nil {
 		context.Error = err
-		return ""
 	}
 	return s
 }

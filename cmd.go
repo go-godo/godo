@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/mgutz/ansi"
 	"gopkg.in/godo.v2/util"
 )
 
@@ -50,12 +49,12 @@ func (gcmd *command) toExecCmd() (cmd *exec.Cmd, err error) {
 	cmd.Stdin = os.Stdin
 
 	if gcmd.capture&CaptureStderr > 0 {
-		cmd.Stderr = newFileWrapper(os.Stderr, &gcmd.buf, ansi.Red)
+		cmd.Stderr = &gcmd.buf
 	} else {
 		cmd.Stderr = os.Stderr
 	}
 	if gcmd.capture&CaptureStdout > 0 {
-		cmd.Stdout = newFileWrapper(os.Stdout, &gcmd.buf, "")
+		cmd.Stdout = &gcmd.buf
 	} else {
 		cmd.Stdout = os.Stdout
 	}
