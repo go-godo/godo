@@ -77,6 +77,7 @@ Usage: godo [flags] [task...]
   -w, --watch    Watch task and dependencies`
 
 	if tasks == "" {
+		format += "\n"
 		fmt.Printf(format, Version)
 	} else {
 		format += "\n\n%s"
