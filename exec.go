@@ -94,10 +94,6 @@ func startEx(context *Context, commandstr string, options []map[string]interface
 	isGoFile := strings.HasSuffix(executable, ".go")
 	if isGoFile {
 		cmdstr := "go install"
-		if context == nil || context.FileEvent == nil {
-			util.Info(context.Task.Name, "rebuilding with -a to ensure clean build (might take awhile)\n")
-			cmdstr += " -a"
-		}
 		_, err = Run(cmdstr, m)
 		if err != nil {
 			return err
