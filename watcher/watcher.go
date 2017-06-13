@@ -218,6 +218,11 @@ func DefaultIgnorePathFn(path string) bool {
 		return true
 	}
 
+	// ignore go vendor
+	if strings.HasPrefix(path, "vendor") || strings.Contains(path, "/vendor") {
+		return true
+	}
+
 	// vim creates random numeric files
 	base := filepath.Base(path)
 	if str.IsNumeric(base) {
