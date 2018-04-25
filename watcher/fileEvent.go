@@ -2,8 +2,6 @@ package watcher
 
 import "fmt"
 
-//"log"
-
 const (
 	// NONE means no event, initial state.
 	NONE = iota

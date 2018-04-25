@@ -5,9 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/stretchr/testify.v1/assert"
-
 	"github.com/mgutz/str"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSimpleTask(t *testing.T) {

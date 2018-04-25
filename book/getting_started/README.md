@@ -5,7 +5,7 @@ Create a file `Gododir/main.go` with this content
 ```go
 import (
     "fmt"
-    do "gopkg.in/godo.v2"
+    do "github.com/davars/godo"
 )
 
 func tasks(p *do.Project) {
@@ -36,7 +36,7 @@ godo hello -- name="gopher"
 Let's create a non-trivial example to run tests whenever any go file changes
 
 ```go
-import . "gopkg.in/godo.v2"
+import . "github.com/davars/godo"
 
 func tasks(p *do.Project) {
     p.Task("clean", nil, func(c *do.Context) {

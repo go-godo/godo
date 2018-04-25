@@ -16,10 +16,10 @@ import (
 
 	// this MUST not reference any godo/v? directory
 
+	"github.com/davars/godo"
+	"github.com/davars/godo/util"
+	"github.com/davars/godo/watcher"
 	"github.com/mgutz/minimist"
-	"gopkg.in/godo.v2"
-	"gopkg.in/godo.v2/util"
-	"gopkg.in/godo.v2/watcher"
 )
 
 var isWindows = runtime.GOOS == "windows"
