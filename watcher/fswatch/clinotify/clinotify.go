@@ -6,9 +6,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/gokyle/fswatch"
 	"os"
 	"time"
+
+	"github.com/davars/godo/watcher/fswatch"
 )
 
 var dur time.Duration

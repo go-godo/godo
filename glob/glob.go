@@ -3,7 +3,6 @@ package glob
 import (
 	"bytes"
 	"fmt"
-	//"log"
 	"os"
 	gpath "path"
 	"path/filepath"

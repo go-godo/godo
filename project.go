@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/davars/godo/glob"
+	"github.com/davars/godo/util"
+	"github.com/davars/godo/watcher"
 	"github.com/mgutz/minimist"
-	"gopkg.in/godo.v2/glob"
-	"gopkg.in/godo.v2/util"
-	"gopkg.in/godo.v2/watcher"
 )
 
 // softPanic is used to check for errors within a task handler.

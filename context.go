@@ -1,9 +1,9 @@
 package godo
 
 import (
+	"github.com/davars/godo/util"
+	"github.com/davars/godo/watcher"
 	"github.com/mgutz/minimist"
-	"gopkg.in/godo.v2/util"
-	"gopkg.in/godo.v2/watcher"
 )
 
 func logVerbose(msg string, format string, args ...interface{}) {

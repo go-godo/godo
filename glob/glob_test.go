@@ -1,7 +1,6 @@
 package glob
 
 import (
-	//"log"
 	"regexp"
 	"strings"
 	"testing"

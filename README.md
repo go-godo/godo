@@ -2,14 +2,16 @@
 
 # godo
 
-[![GoDoc](https://godoc.org/github.com/go-godo/godo?status.svg)](https://godoc.org/github.com/go-godo/godo)
+[![GoDoc](https://godoc.org/github.com/davars/godo?status.svg)](https://godoc.org/github.com/davars/godo)
 
 godo is a task runner and file watcher for golang in the spirit of
 rake, gulp.
 
+This is a fork of the original at [https://github.com/go-godo/godo](https://github.com/go-godo/godo).
+
 To install
 
-    go get -u gopkg.in/godo.v2/cmd/godo
+    go get -u github.com/davars/godo/cmd/godo
 
 ## Godofile
 
@@ -22,7 +24,7 @@ package main
 
 import (
     "fmt"
-    do "gopkg.in/godo.v2"
+    do "github.com/davars/godo"
 )
 
 func tasks(p *do.Project) {

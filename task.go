@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/davars/godo/glob"
+	"github.com/davars/godo/util"
+	"github.com/davars/godo/watcher"
 	"github.com/mgutz/minimist"
 	"github.com/mgutz/str"
-	"gopkg.in/godo.v2/glob"
-	"gopkg.in/godo.v2/util"
-	"gopkg.in/godo.v2/watcher"
 )
 
 // TaskFunction is the signature of the function used to define a type.

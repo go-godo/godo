@@ -2,16 +2,14 @@
 package watcher
 
 import (
-	//"fmt"
-
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/davars/godo/watcher/fswatch"
 	"github.com/mgutz/str"
-	"gopkg.in/godo.v2/watcher/fswatch"
 )
 
 const (

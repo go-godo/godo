@@ -7,8 +7,8 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/davars/godo/util"
 	"github.com/mgutz/ansi"
-	"gopkg.in/godo.v2/util"
 )
 
 // Processes are the processes spawned by Start()
